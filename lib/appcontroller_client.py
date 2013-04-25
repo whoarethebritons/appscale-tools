@@ -93,14 +93,14 @@ class AppControllerClient():
       """
       raise TimeoutException()
 
-    signal.signal(signal.SIGALRM, timeout_handler)
-    signal.alarm(timeout_time)  # trigger alarm in timeout_time seconds
+    #signal.signal(signal.SIGALRM, timeout_handler)
+    #signal.alarm(timeout_time)  # trigger alarm in timeout_time seconds
     try:
       retval = function(*args)
     except TimeoutException:
       return default
     except socket.error as exception:
-      signal.alarm(0)  # turn off the alarm before we retry
+      #signal.alarm(0)  # turn off the alarm before we retry
       if num_retries > 0:
         AppScaleLogger.log("Saw exception {0} when communicating with the " \
           "AppController, retrying momentarily.".format(str(exception)))
@@ -111,12 +111,12 @@ class AppControllerClient():
         raise exception
     except ssl.SSLError:
       # these are intermittent, so don't decrement our retry count for this
-      signal.alarm(0)  # turn off the alarm before we retry
+      #signal.alarm(0)  # turn off the alarm before we retry
       return self.run_with_timeout(timeout_time, default, num_retries, function,
         *args)
     finally:
-      signal.alarm(0)  # turn off the alarm
-
+      #signal.alarm(0)  # turn off the alarm
+      pass
     if retval == self.BAD_SECRET_MESSAGE:
       raise AppControllerException("Could not authenticate successfully" + \
         " to the AppController. You may need to change the keyname in use.")
