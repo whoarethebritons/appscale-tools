@@ -153,6 +153,14 @@ class ParseArgs():
       self.parser.add_argument('--ips_layout',
         help="a base64-encoded YAML dictating the placement strategy")
 
+      # Google Cloud Datastore flags.
+      self.parser.add_argument('--gcd_private_key',
+        help="base64-encoded contents of the GCD private key")
+      self.parser.add_argument('--gcd_service_email',
+        help="The service email for GCD service")
+      self.parser.add_argument('--gcd_dataset_id',
+        help="The dataset identifier for GCD")
+
       # Infrastructure-agnostic flags
       self.parser.add_argument('--disks',
         help="a base64-encoded YAML dictating the PD or EBS disks to use")

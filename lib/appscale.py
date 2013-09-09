@@ -203,6 +203,19 @@ Available commands:
     if "disks" in contents_as_yaml:
       disks = base64.b64encode(yaml.dump(contents_as_yaml["disks"]))
 
+    if "gcd_private_key" in contents_as_yaml:
+      private_key_file = contents_as_yaml["gcd_private_key"]
+      with open(private_key_file) as f:
+        contents = f.read()
+        print "Length of contents: " + str(len(contents))
+        private_key_contents = base64.b64encode(contents)
+        print "Length of private key contents" + str(len(private_key_contents))
+        decoded = base64.b64decode(private_key_contents)
+        if decoded != contents:
+          print "The conversion did not match"
+        else:
+          print "The convertion did match"
+        contents_as_yaml["gcd_private_key"]  = private_key_contents
     if not "infrastructure" in contents_as_yaml:
       # Only run add-keypair if there is no ssh key present,
       # or if it doesn't log into all the machines specified.
