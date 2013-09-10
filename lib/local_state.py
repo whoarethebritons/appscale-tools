@@ -172,6 +172,9 @@ class LocalState():
       key that indicates machine to role mapping information.
     """
     creds = {
+      "gcd_dataset_id" : options.gcd_dataset_id,
+      "gcd_service_email" : options.gcd_service_email,
+      "gcd_private_key" : options.gcd_private_key,
       "table" : options.table,
       "hostname" : first_host,
       "ips" : json.dumps(node_layout.to_list_without_head_node()),
