@@ -157,9 +157,9 @@ class ParseArgs():
       self.parser.add_argument('--gcd_private_key',
         help="base64-encoded contents of the GCD private key")
       self.parser.add_argument('--gcd_service_email',
-        help="The service email for GCD service")
+        help="base64-encoded service email for GCD service")
       self.parser.add_argument('--gcd_dataset_id',
-        help="The dataset identifier for GCD")
+        help="base64-encoded dataset identifier for GCD")
 
       # Infrastructure-agnostic flags
       self.parser.add_argument('--disks',
@@ -348,6 +348,7 @@ class ParseArgs():
       SystemExit: If function is not a supported function.
     """
     if function == "appscale-run-instances":
+      self.validate_gcd_flags()
       self.validate_ips_flags()
       self.validate_num_of_vms_flags()
       self.validate_infrastructure_flags()
@@ -626,3 +627,16 @@ class ParseArgs():
     if self.args.admin_user and self.args.admin_pass and self.args.test:
       raise BadConfigurationException("Cannot set admin_user, " + \
         "admin_pass, and test.")
+
+  def validate_gcd_flags(self):
+    """ Validates Google Cloud Datastore flags.
+
+    Raises:
+      BadConfigurationException: If flags are not supplied.
+    """
+    if not self.args.gcd_private_key:
+      raise BadConfigurationException("Please set gcd_private_key.")
+    if not self.args.gcd_dataset_id:
+      raise BadConfigurationException("Please set gcd_dataset_id.")
+    if not self.args.gcd_service_email:
+      raise BadConfigurationException("Please set gcd_service_email.")
