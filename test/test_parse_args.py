@@ -32,7 +32,8 @@ class TestParseArgs(unittest.TestCase):
   def setUp(self):
     self.cloud_argv = ['--min', '1', '--max', '1', '--group', 'blargscale',
       '--infrastructure', 'ec2', '--machine', 'ami-ABCDEFG', '--zone',
-      'my-zone-1b']
+      'my-zone-1b', '--gcd_read_only', '--gcd_private_key', '1', '--gcd_service_email', 
+      'serice@email.com']
     self.cluster_argv = ['--ips', 'ips.yaml']
     self.function = "appscale-run-instances"
 

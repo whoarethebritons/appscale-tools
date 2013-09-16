@@ -88,7 +88,11 @@ class TestAppScaleLogger(unittest.TestCase):
       "use_spot_instances" : False,
       "verbose" : False,
       "version" : False,
-      "zone" : "my-zone-1b"
+      "zone" : "my-zone-1b",
+      "gcd_read_only" : False,
+      "gcd_private_key" : None,
+      "gcd_service_email" : None,
+      "gcd_dataset_id" : None
     }
 
     # finally, construct a http payload for mocking that the below
