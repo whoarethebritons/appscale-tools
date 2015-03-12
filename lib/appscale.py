@@ -204,6 +204,9 @@ Available commands:
     if "disks" in contents_as_yaml:
       disks = base64.b64encode(yaml.dump(contents_as_yaml["disks"]))
 
+    if "auth" in contents_as_yaml:
+      auth = base64.b64encode(yaml.dump(contents_as_yaml['auth']))
+
     if "user_commands" in contents_as_yaml:
       user_commands = base64.b64encode(yaml.dump(
         contents_as_yaml["user_commands"]))
@@ -243,6 +246,9 @@ Available commands:
         elif key == "user_commands":
           command.append("--user_commands")
           command.append(user_commands)
+        elif key == "auth":
+          command.append("--auth")
+          command.append(auth)
         else:
           command.append(str("--%s" % key))
           command.append(str("%s" % value))

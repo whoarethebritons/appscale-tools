@@ -275,6 +275,9 @@ class ParseArgs(object):
       self.parser.add_argument('--user_commands',
         help="a base64-encoded YAML dictating the commands to run before " +
           "starting each AppController")
+      self.parser.add_argument('--auth',
+        help="a base64-encoded YAML dictating the auth system to use and " +
+          "options")
     elif function == "appscale-gather-logs":
       self.parser.add_argument('--keyname', '-k', default=self.DEFAULT_KEYNAME,
         help="the keypair name to use")
