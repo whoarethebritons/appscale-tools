@@ -840,7 +840,7 @@ Available commands:
       'Registration complete for AppScale deployment {0}.'
       .format(deployment['name']))
 
-  def upgrade(self):
+  def upgrade(self, bootstrap_cmd=None):
     """ Allows users to upgrade to the latest version of AppScale."""
     contents_as_yaml = yaml.safe_load(self.read_appscalefile())
 
@@ -868,4 +868,5 @@ Available commands:
 
     options = ParseArgs(command, 'appscale-upgrade').args
     options.ips = yaml.safe_load(base64.b64decode(options.ips_layout))
+    options.bootstrap_cmd = bootstrap_cmd
     AppScaleTools.upgrade(options)

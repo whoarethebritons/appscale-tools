@@ -1130,6 +1130,7 @@ class AppScaleTools(object):
 
   @classmethod
   def run_bootstrap(cls, ip, options, error_ips):
+    cls.BOOTSTRAP_CMD = options.bootstrap_cmd or cls.BOOTSTRAP_CMD
     try:
       RemoteHelper.ssh(ip, options.keyname, cls.BOOTSTRAP_CMD, options.verbose)
       AppScaleLogger.success(
