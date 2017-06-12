@@ -440,7 +440,7 @@ class EC2Agent(BaseAgent):
     try:
       attempts = 1
       while True:
-        instance_info = self.describe_instances(parameters)
+        instance_info = self.describe_instances(parameters, pending=False)
         active_public_ips = instance_info[0]
         active_private_ips = instance_info[1]
         active_instances = instance_info[2]
