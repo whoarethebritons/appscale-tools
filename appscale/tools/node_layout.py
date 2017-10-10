@@ -412,6 +412,12 @@ class NodeLayout():
       if not self.max_machines:
         self.max_machines = len(nodes)
 
+    # by this point, somebody has a login role, so now's the time to see if we
+    # need to override their ip address with --login_host
+    if self.login_host:
+      login = self.get_nodes('login', True, nodes)[0]
+      login.public_ip = self.login_host
+
     self.nodes = nodes
 
     return True
@@ -526,6 +532,12 @@ class NodeLayout():
         self.min_machines = len(nodes)
       if not self.max_machines:
         self.max_machines = len(nodes)
+
+    # by this point, somebody has a login role, so now's the time to see if we
+    # need to override their ip address with --login_host
+    if self.login_host:
+      login = self.get_nodes('login', True, nodes)[0]
+      login.public_ip = self.login_host
 
     self.nodes = nodes
 
