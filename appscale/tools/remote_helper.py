@@ -644,7 +644,7 @@ class RemoteHelper(object):
     if not os.path.exists(local_path):
       raise BadConfigurationException("The location you specified to copy " \
         "from, {0}, doesn't exist.".format(local_path))
-    LocalState.shell("rsync -e 'ssh -i {0} {1}' -arv "
+    LocalState.shell("rsync -e 'ssh -i {0} {1}' -aIzv "
       "--exclude='AppDB/logs/*' " \
       "--exclude='AppDB/cassandra/cassandra/*' " \
       "{2}/* root@{3}:/root/appscale/".format(ssh_key, cls.SSH_OPTIONS,
