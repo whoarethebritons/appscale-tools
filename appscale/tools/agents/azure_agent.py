@@ -269,7 +269,10 @@ class AzureAgent(BaseAgent):
 
     public_ip_addresses = network_client.public_ip_addresses.list(resource_group)
     for public_ip in public_ip_addresses:
-      public_ips.append(public_ip.ip_address)
+      # We create Static IPs for Azure load balancers which we would retain
+      # even on a terminate and reuse.
+      if not public_ip.public_ip_allocation_method == "Static":
+        public_ips.append(public_ip.ip_address)
 
     network_interfaces = network_client.network_interfaces.list(resource_group)
     for network_interface in network_interfaces:
