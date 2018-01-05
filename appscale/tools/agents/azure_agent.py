@@ -649,11 +649,6 @@ class AzureAgent(BaseAgent):
       computer_name_prefix=resource_name, admin_username=self.ADMIN_USERNAME,
       linux_configuration=linux_configuration)
 
-    image_hd = VirtualHardDisk(uri=parameters[self.PARAM_IMAGE_ID])
-    os_disk = VirtualMachineScaleSetOSDisk(
-      name=resource_name, caching=CachingTypes.read_write,
-      create_option=DiskCreateOptionTypes.from_image,
-      os_type=OperatingSystemTypes.linux, image=image_hd)
 
     subnet_reference = ApiEntityReference(id=subnet.id)
     ip_config = VirtualMachineScaleSetIPConfiguration(name=resource_name,
@@ -676,9 +671,27 @@ class AzureAgent(BaseAgent):
                                    create_option=DiskCreateOptionTypes.attach,
                                    managed_disk=managed_disk_params))
 
+    image_hd = None
+    image_ref = None
+    azure_image_id = parameters[self.PARAM_IMAGE_ID]
+    # Publisher images are formatted Publisher:Offer:Sku:Tag
+    if re.search(".*:.*:.*:.*", azure_image_id):
+      AppScaleLogger.log("Using publisher image {}".format(azure_image_id))
+      image_ref_params = azure_image_id.split(":")
+      image_ref = ImageReference(publisher=image_ref_params[0],
+                                 offer=image_ref_params[1],
+                                 sku=image_ref_params[2],
+                                 version=image_ref_params[3])
+    else:
+      image_hd = VirtualHardDisk(uri=azure_image_id)
 
-    storage_profile = VirtualMachineScaleSetStorageProfile(os_disk=os_disk,
-                                                           data_disks=data_disks)
+    os_disk = VirtualMachineScaleSetOSDisk(
+        name=resource_name, caching=CachingTypes.read_write,
+        create_option=DiskCreateOptionTypes.from_image,
+        os_type=OperatingSystemTypes.linux, image=image_hd)
+
+    storage_profile = VirtualMachineScaleSetStorageProfile(
+        os_disk=os_disk, data_disks=data_disks, image_reference=image_ref)
     virtual_machine_profile = VirtualMachineScaleSetVMProfile(
       os_profile=os_profile, storage_profile=storage_profile,
       network_profile=network_profile)
