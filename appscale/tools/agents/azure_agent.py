@@ -432,15 +432,15 @@ class AzureAgent(BaseAgent):
                      name=vm_network_name, vhd=virtual_hd, image=image_hd)
 
     # Check if we need to attach a disk.
-    data_disk = None
+    data_disks = None
     disk_names = parameters.get(self.PARAM_DISKS)
     if disk_names:
-      data_disk = []
+      data_disks = []
       for disk_name in disk_names:
-        data_disk.append(compute_client.disks.get(resource_group, disk_name))
+        data_disks.append(compute_client.disks.get(resource_group, disk_name))
 
     storage_profile = StorageProfile(image_reference=image_ref,
-                                     os_disk=os_disk, data_disk=data_disk)
+                                     os_disk=os_disk, data_disks=data_disks)
     compute_client.virtual_machines.create_or_update(
       resource_group, vm_network_name, VirtualMachine(location=zone,
                                                       os_profile=os_profile,
