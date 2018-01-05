@@ -674,7 +674,7 @@ class AzureAgent(BaseAgent):
         managed_disk_params = ManagedDiskParameters(id=disk.id)
         data_disks.append(DataDisk(lun=12, name=disk.name,
                                    create_option=DiskCreateOptionTypes.attach,
-                                   managed_disk_params=managed_disk_params))
+                                   managed_disk=managed_disk_params))
 
 
     storage_profile = VirtualMachineScaleSetStorageProfile(os_disk=os_disk,
