@@ -517,9 +517,12 @@ class AzureAgent(BaseAgent):
 
       scaleset = compute_client.virtual_machine_scale_sets.get(
         resource_group, vmss.name)
+      ss_profile = scaleset.virtual_machine_profile
+      # Cannot add instances to a scaleset that has disks.
+      if ss_profile.storage_profile.data_disks:
+        continue
       ss_upgrade_policy = scaleset.upgrade_policy
       ss_location = scaleset.location
-      ss_profile = scaleset.virtual_machine_profile
       ss_overprovision = scaleset.over_provision
 
       new_capacity = min(ss_instance_count + count, self.MAX_VMSS_CAPACITY)
