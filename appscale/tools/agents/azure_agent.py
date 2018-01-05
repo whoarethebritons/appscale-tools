@@ -417,7 +417,7 @@ class AzureAgent(BaseAgent):
     azure_image_id = parameters[self.PARAM_IMAGE_ID]
 
     image_ref = None
-    image_hd = None
+    os_disk = None
     # Publisher images are formatted Publisher:Offer:Sku:Tag
     if re.search(".*:.*:.*:.*", azure_image_id):
       AppScaleLogger.log("Using publisher image {}".format(azure_image_id))
