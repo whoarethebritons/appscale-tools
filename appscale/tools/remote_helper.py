@@ -152,6 +152,7 @@ class RemoteHelper(object):
     agent.configure_instance_security(params)
 
     load_balancer_nodes = node_layout.get_nodes('load_balancer', True)
+    params['disks'] = [node.disk for node in load_balancer_nodes]
     instance_ids, public_ips, private_ips = cls.spawn_load_balancers_in_cloud(
       options, agent, params,
       len(load_balancer_nodes))
@@ -166,6 +167,7 @@ class RemoteHelper(object):
                        "for use. This can take few minutes.")
 
     other_nodes = node_layout.get_nodes('load_balancer', False)
+    params['disks'] = [node.disk for node in other_nodes]
     if len(other_nodes) > 0:
       _instance_ids, _public_ips, _private_ips = cls.spawn_other_nodes_in_cloud(
         agent, params,

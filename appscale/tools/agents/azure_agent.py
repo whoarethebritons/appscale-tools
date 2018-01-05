@@ -102,6 +102,7 @@ class AzureAgent(BaseAgent):
   PARAM_APP_ID = 'azure_app_id'
   PARAM_APP_SECRET = 'azure_app_secret_key'
   PARAM_CREDENTIALS = 'credentials'
+  PARAM_DISKS = 'disks'
   PARAM_EXISTING_RG = 'does_exist'
   PARAM_GROUP = 'group'
   PARAM_INSTANCE_IDS = 'instance_ids'
@@ -429,8 +430,17 @@ class AzureAgent(BaseAgent):
     os_disk = OSDisk(os_type=os_type, caching=CachingTypes.read_write,
                      create_option=DiskCreateOptionTypes.from_image,
                      name=vm_network_name, vhd=virtual_hd, image=image_hd)
+
+    # Check if we need to attach a disk.
+    data_disk = None
+    disk_names = parameters.get(self.PARAM_DISKS)
+    if disk_names:
+      data_disk = []
+      for disk_name in disk_names:
+        data_disk.append(compute_client.disks.get(resource_group, disk_name))
+
     storage_profile = StorageProfile(image_reference=image_ref,
-                                     os_disk=os_disk)
+                                     os_disk=os_disk, data_disk=data_disk)
     compute_client.virtual_machines.create_or_update(
       resource_group, vm_network_name, VirtualMachine(location=zone,
                                                       os_profile=os_profile,
@@ -645,8 +655,16 @@ class AzureAgent(BaseAgent):
 
     network_profile = VirtualMachineScaleSetNetworkProfile(
       network_interface_configurations=[network_interface_config])
+    # Check if we need to attach disks.
+    data_disks = None
+    disk_names = parameters.get(self.PARAM_DISKS)
+    if disk_names:
+      data_disks = []
+      for disk_name in disk_names:
+        data_disks.append(compute_client.disks.get(resource_group, disk_name))
 
-    storage_profile = VirtualMachineScaleSetStorageProfile(os_disk=os_disk)
+    storage_profile = VirtualMachineScaleSetStorageProfile(os_disk=os_disk,
+                                                           data_disks=data_disks)
     virtual_machine_profile = VirtualMachineScaleSetVMProfile(
       os_profile=os_profile, storage_profile=storage_profile,
       network_profile=network_profile)
