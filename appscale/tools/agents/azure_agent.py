@@ -17,10 +17,12 @@ from msrestazure.azure_active_directory import ServicePrincipalCredentials
 from azure.mgmt.compute import ComputeManagementClient
 from azure.mgmt.compute.models import ApiEntityReference
 from azure.mgmt.compute.models import CachingTypes
+from azure.mgmt.compute.models import DataDisk
 from azure.mgmt.compute.models import DiskCreateOptionTypes
 from azure.mgmt.compute.models import HardwareProfile
 from azure.mgmt.compute.models import ImageReference
 from azure.mgmt.compute.models import LinuxConfiguration
+from azure.mgmt.compute.models import ManagedDiskParameters
 from azure.mgmt.compute.models import NetworkProfile
 from azure.mgmt.compute.models import NetworkInterfaceReference
 from azure.mgmt.compute.models import OperatingSystemTypes
@@ -437,7 +439,11 @@ class AzureAgent(BaseAgent):
     if disk_names:
       data_disks = []
       for disk_name in disk_names:
-        data_disks.append(compute_client.disks.get(resource_group, disk_name))
+        disk = compute_client.disks.get(resource_group, disk_name)
+        managed_disk_params = ManagedDiskParameters(id=disk.id)
+        data_disks.append(DataDisk(lun=12, name=disk.name,
+                                   create_option=DiskCreateOptionTypes.attach,
+                                   managed_disk_params=managed_disk_params))
 
     storage_profile = StorageProfile(image_reference=image_ref,
                                      os_disk=os_disk, data_disks=data_disks)
@@ -664,7 +670,12 @@ class AzureAgent(BaseAgent):
     if disk_names:
       data_disks = []
       for disk_name in disk_names:
-        data_disks.append(compute_client.disks.get(resource_group, disk_name))
+        disk = compute_client.disks.get(resource_group, disk_name)
+        managed_disk_params = ManagedDiskParameters(id=disk.id)
+        data_disks.append(DataDisk(lun=12, name=disk.name,
+                                   create_option=DiskCreateOptionTypes.attach,
+                                   managed_disk_params=managed_disk_params))
+
 
     storage_profile = VirtualMachineScaleSetStorageProfile(os_disk=os_disk,
                                                            data_disks=data_disks)
