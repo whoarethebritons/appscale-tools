@@ -523,7 +523,7 @@ class AzureAgent(BaseAgent):
         continue
       ss_upgrade_policy = scaleset.upgrade_policy
       ss_location = scaleset.location
-      ss_overprovision = scaleset.over_provision
+      ss_overprovision = scaleset.overprovision
 
       new_capacity = min(ss_instance_count + count, self.MAX_VMSS_CAPACITY)
       sku = ComputeSku(name=parameters[self.PARAM_INSTANCE_TYPE],
@@ -532,7 +532,7 @@ class AzureAgent(BaseAgent):
                                         upgrade_policy=ss_upgrade_policy,
                                         location=ss_location,
                                         virtual_machine_profile=ss_profile,
-                                        over_provision=ss_overprovision)
+                                        overprovision=ss_overprovision)
       create_update_response = compute_client.virtual_machine_scale_sets.\
         create_or_update(resource_group, vmss.name, scaleset)
       self.wait_for_ss_update(new_capacity, create_update_response, vmss.name)
