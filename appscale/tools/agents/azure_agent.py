@@ -1491,7 +1491,7 @@ class AzureAgent(BaseAgent):
       return True
     return False
 
-  def run_and_return_exception(self, method, args):
+  def run_and_return_exception(self, method, *args):
     """ Runs a given method with args catching CloudError and returning it.
     Args:
       method: The method to call.
