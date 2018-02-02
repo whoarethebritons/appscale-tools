@@ -507,7 +507,7 @@ class AzureAgent(BaseAgent):
     num_instances_added = 0
     vmss_list, error = self.run_and_return_exception(
         compute_client.virtual_machine_scale_sets.list,
-        (resource_group))
+        resource_group)
     if error:
       # This method is not run in a thread so we can directly raise the
       # exception.
@@ -516,7 +516,7 @@ class AzureAgent(BaseAgent):
     for vmss in vmss_list:
       vm_list, error = self.run_and_return_exception(
           compute_client.virtual_machine_scale_set_vms.list,
-          (resource_group, vmss.name))
+          resource_group, vmss.name)
       if error:
         raise AgentRuntimeException("Error adding instances to Scale Set {}: "
                                     "{}".format(vmss.name, error.message))
@@ -529,7 +529,7 @@ class AzureAgent(BaseAgent):
 
       scaleset, error = self.run_and_return_exception(
           compute_client.virtual_machine_scale_sets.get,
-          (resource_group, vmss.name))
+          resource_group, vmss.name)
       if error:
         raise AgentRuntimeException("Error adding instances to Scale Set {}: "
                                     "{}".format(vmss.name, error.message))
@@ -549,7 +549,7 @@ class AzureAgent(BaseAgent):
 
       create_update_response, error = self.run_and_return_exception(
         compute_client.virtual_machine_scale_sets.create_or_update,
-          (resource_group, vmss.name, scaleset))
+          resource_group, vmss.name, scaleset)
       if error:
         raise AgentRuntimeException("There was a problem while updating the "
                                     "Scale Set {0} due to the error: "
@@ -700,7 +700,7 @@ class AzureAgent(BaseAgent):
       virtual_machine_profile=virtual_machine_profile, over_provision=False)
     create_update_response, error = self.run_and_return_exception(
         compute_client.virtual_machine_scale_sets.create_or_update,
-        (resource_group, scale_set_name, vm_scale_set))
+        resource_group, scale_set_name, vm_scale_set)
     if error:
       results[index] = "There was a problem while creating the Scale Set {0} " \
                         "due to the error: {1}".format(scale_set_name,
@@ -764,7 +764,7 @@ class AzureAgent(BaseAgent):
 
     vmss_list, error = self.run_and_return_exception(
         compute_client.virtual_machine_scale_sets.list,
-        (resource_group))
+        resource_group)
     if error:
       raise AgentRuntimeException("Error terminating instances: {}".format(
               error.message))
@@ -783,7 +783,7 @@ class AzureAgent(BaseAgent):
       for vmss in vmss_list:
         vm_list, error = self.run_and_return_exception(
             compute_client.virtual_machine_scale_set_vms.list,
-            (resource_group, vmss.name))
+            resource_group, vmss.name)
         if error:
           raise AgentRuntimeException("Error downscaling: {}".format(
               error.message))
@@ -819,7 +819,7 @@ class AzureAgent(BaseAgent):
       for vmss in vmss_list:
         vm_list, error = self.run_and_return_exception(
             compute_client.virtual_machine_scale_set_vms.list,
-            (resource_group, vmss.name))
+            resource_group, vmss.name)
         if error:
           raise AgentRuntimeException("Error downscaling: {}".format(
               error.message))
@@ -856,7 +856,7 @@ class AzureAgent(BaseAgent):
     for vmss in vmss_list:
       vm_list, error = self.run_and_return_exception(
           compute_client.virtual_machine_scale_set_vms.list,
-          (resource_group, vmss.name))
+          resource_group, vmss.name)
       if error:
         raise AgentRuntimeException("Error terminating instances: {}".format(
             error.message))
@@ -933,7 +933,7 @@ class AzureAgent(BaseAgent):
 
     delete_response, error = self.run_and_return_exception(
           compute_client.virtual_machine_scale_sets.delete,
-          (resource_group, vmss_name))
+          resource_group, vmss_name)
     if error:
       results[index] = (error.message,
           "There was a problem while deleting the Scale Set {0}".format(
@@ -967,7 +967,7 @@ class AzureAgent(BaseAgent):
     # Check if we succeeded deleting the instance before but timed out.
     vm_list, error = self.run_and_return_exception(
         compute_client.virtual_machine_scale_set_vms.list,
-        (resource_group, vmss_name))
+        resource_group, vmss_name)
     if error:
       results[index] = (error.message,
           "There was a problem while deleting {0}".format(vm_info))
@@ -986,7 +986,7 @@ class AzureAgent(BaseAgent):
     AppScaleLogger.verbose("Deleting {0} ...".format(vm_info), verbose)
     result, error = self.run_and_return_exception(
         compute_client.virtual_machine_scale_set_vms.delete,
-        (resource_group, vmss_name, instance_id))
+        resource_group, vmss_name, instance_id)
     if error:
       results[index] = (error.message,
           "There was a problem while deleting {0}".format(vm_info))
@@ -998,7 +998,7 @@ class AzureAgent(BaseAgent):
     # Double check if we succeeded deleting the instance.
     vm_list, error = self.run_and_return_exception(
         compute_client.virtual_machine_scale_set_vms.list,
-        (resource_group, vmss_name))
+        resource_group, vmss_name)
     if error:
       results[index] = (error.message,
           "There was a problem while deleting {0}".format(vm_info))
@@ -1024,7 +1024,7 @@ class AzureAgent(BaseAgent):
 
     # Check if we succeeded deleting the instance before but timed out.
     virtual_machines, error = self.run_and_return_exception(
-        compute_client.virtual_machines.list, (resource_group))
+        compute_client.virtual_machines.list, resource_group)
     if error:
       return "There was a problem while deleting the Virtual Machine {0} due " \
              "to the error: {1}".format(vm_name, error.message)
@@ -1040,7 +1040,7 @@ class AzureAgent(BaseAgent):
 
     AppScaleLogger.verbose("Deleting Virtual Machine {} ...".format(vm_name), verbose)
     result, error = self.run_and_return_exception(
-        compute_client.virtual_machines.delete, (resource_group, vm_name))
+        compute_client.virtual_machines.delete, resource_group, vm_name)
     if error:
       return "There was a problem while deleting the Virtual Machine {0} due " \
              "to the error: {1}".format(vm_name, error.message)
@@ -1051,7 +1051,7 @@ class AzureAgent(BaseAgent):
 
     # Double check if we succeeded deleting the instance.
     virtual_machines, error = self.run_and_return_exception(
-        compute_client.virtual_machines.list, (resource_group))
+        compute_client.virtual_machines.list, resource_group)
     if error:
       return "There was a problem while deleting the Virtual Machine {0} due " \
              "to the error: {1}".format(vm_name, error.message)
