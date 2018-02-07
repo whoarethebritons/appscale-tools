@@ -842,7 +842,8 @@ class AzureAgent(BaseAgent):
             thread = threading.Thread(target=self.delete_vmss_instance,
                                       args=(compute_client, parameters,
                                             vmss.name, vm.instance_id,
-                                            vmss_vm_delete_threads, index))
+                                            vmss_vm_delete_threads_results,
+                                            index))
             index += 1
             thread.start()
             vmss_vm_delete_threads.append(thread)
