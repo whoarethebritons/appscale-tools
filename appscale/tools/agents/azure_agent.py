@@ -417,7 +417,7 @@ class AzureAgent(BaseAgent):
     azure_image_id = parameters[self.PARAM_IMAGE_ID]
 
     image_ref = None
-    image_hd = None
+    os_disk = None
     # Publisher images are formatted Publisher:Offer:Sku:Tag
     if re.search(".*:.*:.*:.*", azure_image_id):
       AppScaleLogger.log("Using publisher image {}".format(azure_image_id))
@@ -429,9 +429,9 @@ class AzureAgent(BaseAgent):
     else:
       image_hd = VirtualHardDisk(uri=parameters[self.PARAM_IMAGE_ID])
 
-    os_disk = OSDisk(os_type=os_type, caching=CachingTypes.read_write,
-                     create_option=DiskCreateOptionTypes.from_image,
-                     name=vm_network_name, vhd=virtual_hd, image=image_hd)
+      os_disk = OSDisk(os_type=os_type, caching=CachingTypes.read_write,
+                       create_option=DiskCreateOptionTypes.from_image,
+                       name=vm_network_name, vhd=virtual_hd, image=image_hd)
 
     # Check if we need to attach a disk.
     data_disks = None
@@ -441,9 +441,9 @@ class AzureAgent(BaseAgent):
       for disk_name in disk_names:
         disk = compute_client.disks.get(resource_group, disk_name)
         managed_disk_params = ManagedDiskParameters(id=disk.id)
-        data_disks.append(DataDisk(lun=12, name=disk.name,
+        data_disks.append(DataDisk(lun=12, #name=disk.name,
                                    create_option=DiskCreateOptionTypes.attach,
-                                   managed_disk_params=managed_disk_params))
+                                   managed_disk=managed_disk_params))
 
     storage_profile = StorageProfile(image_reference=image_ref,
                                      os_disk=os_disk, data_disks=data_disks)
@@ -667,11 +667,11 @@ class AzureAgent(BaseAgent):
       for disk_name in disk_names:
         disk = compute_client.disks.get(resource_group, disk_name)
         managed_disk_params = ManagedDiskParameters(id=disk.id)
-        data_disks.append(DataDisk(lun=12, name=disk.name,
+        data_disks.append(DataDisk(lun=12, #name=disk.name,
                                    create_option=DiskCreateOptionTypes.attach,
                                    managed_disk=managed_disk_params))
 
-    image_hd = None
+    os_disk = None
     image_ref = None
     azure_image_id = parameters[self.PARAM_IMAGE_ID]
     # Publisher images are formatted Publisher:Offer:Sku:Tag
@@ -685,10 +685,10 @@ class AzureAgent(BaseAgent):
     else:
       image_hd = VirtualHardDisk(uri=azure_image_id)
 
-    os_disk = VirtualMachineScaleSetOSDisk(
-        name=resource_name, caching=CachingTypes.read_write,
-        create_option=DiskCreateOptionTypes.from_image,
-        os_type=OperatingSystemTypes.linux, image=image_hd)
+      os_disk = VirtualMachineScaleSetOSDisk(
+          name=resource_name, caching=CachingTypes.read_write,
+          create_option=DiskCreateOptionTypes.from_image,
+          os_type=OperatingSystemTypes.linux, image=image_hd)
 
     storage_profile = VirtualMachineScaleSetStorageProfile(
         os_disk=os_disk, data_disks=data_disks, image_reference=image_ref)
