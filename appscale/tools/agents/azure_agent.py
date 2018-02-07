@@ -1037,7 +1037,7 @@ class AzureAgent(BaseAgent):
                           vm_info))
       return
     for vm in vm_list_results:
-      if instance_id == vm.name:
+      if instance_id == vm.instance_id:
         already_deleted = False
         break
     if already_deleted:
@@ -1072,7 +1072,7 @@ class AzureAgent(BaseAgent):
                           vm_info))
       return
     for vm in vm_list_results:
-      if instance_id == vm.name:
+      if instance_id == vm.instance_id:
         results[index] = ("VM still up",
             "{0} has not been successfully deleted".format(vm_info))
         return
