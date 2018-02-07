@@ -918,7 +918,7 @@ class AzureAgent(BaseAgent):
     vmss_delete_threads = []
     vmss_delete_threads_results = []
     index = 0
-    vmss_list_results = self.get_properties(vmss_list, ['name'],
+    vmss_list_results, error = self.get_properties(vmss_list, ['name'],
         raise_exception=True, err_msg="Error terminating instances")
 
     for vmss in vmss_list_results:
@@ -928,7 +928,7 @@ class AzureAgent(BaseAgent):
           resource_group, vmss_name)
       self.raise_if_error(error, "Error terminating instances")
 
-      vm_list_results = self.get_properties(vm_list, ['name'],
+      vm_list_results, error = self.get_properties(vm_list, ['name'],
           raise_exception=True, err_msg="Error terminating instances")
 
       for vm in vm_list_results:
@@ -1050,6 +1050,7 @@ class AzureAgent(BaseAgent):
       results[index] = (error.message,
                         "There was a problem while deleting {0}".format(
                           vm_info))
+      return
     for vm in vm_list_results:
       if instance_id == vm['name']:
         already_deleted = False
@@ -1084,6 +1085,7 @@ class AzureAgent(BaseAgent):
       results[index] = (error.message,
                         "There was a problem while deleting {0}".format(
                           vm_info))
+      return
     for vm in vm_list_results:
       if instance_id == vm['name']:
         results[index] = ("VM still up",
