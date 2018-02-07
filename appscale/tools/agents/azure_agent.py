@@ -270,89 +270,83 @@ class AzureAgent(BaseAgent):
         network_client.public_ip_addresses.list, resource_group)
     self.raise_if_error(error, "Error calling describe instances")
 
-    public_ips_results = self.get_properties(
-        public_ip_addresses, ['ip_address'], raise_exception=True,
+    public_ips_results = self.convert_to_list(
+        public_ip_addresses, raise_exception=True,
         err_msg="Error calling describe instances")
 
-    public_ips = [x['ip_address'] for x in public_ips_results]
+    public_ips = [x.ip_address for x in public_ips_results]
 
     network_interfaces, error = self.run_and_return_exception(
         network_client.network_interfaces.list, resource_group)
     self.raise_if_error(error, "Error calling describe instances")
 
-    network_interfaces_results = self.get_properties(
-        network_interfaces, ['ip_configurations'], raise_exception=True,
+    network_interfaces_results = self.convert_to_list(
+        network_interfaces, raise_exception=True,
         err_msg="Error calling describe instances")
 
     for network_interface in network_interfaces_results:
-      ip_config_results = self.get_properties(
-          network_interface['ip_configurations'], ['private_ip_address'],
-          raise_exception=True, err_msg="Error calling describe instances")
+      ip_config_results = self.convert_to_list(
+          network_interface.ip_configurations, raise_exception=True,
+          err_msg="Error calling describe instances")
 
-      private_ips = [x['private_ip_address'] for x in ip_config_results]
+      private_ips.extend([x.private_ip_address for x in ip_config_results])
 
     virtual_machines, error = self.run_and_return_exception(
         compute_client.virtual_machines.list, resource_group)
     self.raise_if_error(error, "Error calling describe instances")
 
-    names = self.get_properties(virtual_machines, ['name'],
+    virtual_machines_results = self.convert_to_list(virtual_machines,
         raise_exception=True, err_msg="Error calling describe instances")
 
-    instance_ids = [x['name'] for x in names]
+    instance_ids = [vm.name for vm in virtual_machines_results]
 
     vmss_list, error = self.run_and_return_exception(
         compute_client.virtual_machine_scale_sets.list,
         resource_group)
     self.raise_if_error(error, "Error getting list of Scale Sets")
 
-    vmss_names = self.get_properties(vmss_list, ['name'],
+    vmss_list_results = self.convert_to_list(vmss_list,
         raise_exception=True, err_msg="Error getting list of Scale Sets")
 
-    for scaleset_info_dict in vmss_names:
-      vmss_name = scaleset_info_dict['name']
+    for vmss in vmss_list_results:
       vm_list, error = self.run_and_return_exception(
           compute_client.virtual_machine_scale_set_vms.list,
-          resource_group, vmss_name)
+          resource_group, vmss.name)
       self.raise_if_error(error, "Error getting list of vms in Scale Set "
-                                 "{}".format(vmss_name))
+                                 "{}".format(vmss.name))
 
-      vm_list_results = self.get_properties(
-          vm_list, ['name', 'instance_id'], raise_exception=True,
-          err_msg="Error getting list of vms in Scale Set {}".format(vmss_name))
-      for vm_list_result in vm_list_results:
-        vm_instance_id = vm_list_result['instance_id']
-
+      vm_list_results = self.convert_to_list(vm_list, raise_exception=True,
+          err_msg="Error getting list of vms in Scale Set {}".format(vmss.name))
+      for vm in vm_list_results:
         network_interface_list, error = \
           self.run_and_return_exception(network_client.network_interfaces.\
               list_virtual_machine_scale_set_vm_network_interfaces,
-              resource_group, vmss_name, vm_instance_id)
+              resource_group, vmss.name, vm.instance_id)
         self.raise_if_error(error, "Error getting list of network "
             "interfaces in Scale Set {} for vm {}".format(
-            vmss_name, vm_instance_id))
+            vmss.name, vm.instance_id))
 
         ip_config_private_ip = None
-        network_interface_ip_config_results = self.get_properties(
-            network_interface_list, ['ip_configurations'],
-            raise_exception=True,
-            err_msg="Error getting private ip for VM {}".format(vm_instance_id))
+        network_interface_ip_config_results = self.convert_to_list(
+            network_interface_list, raise_exception=True,
+            err_msg="Error getting private ip for VM {}".format(vm.instance_id))
 
         for network_interface_result in network_interface_ip_config_results:
-          try:
-            for ip_config in network_interface_result['ip_configurations']:
-              ip_config_private_ip = ip_config.private_ip_address
-              break
-          except CloudError:
-            raise AgentRuntimeException('Error getting private ip address for '
-                'vm {} in Scale Set {}: {}'.format(vm_instance_id, vmss_name,
-                error.message))
+          ip_configs = self.convert_to_list(
+              network_interface_result.ip_configurations, raise_exception=True,
+              err_msg="Error getting private ip for VM {}".format(
+              vm.instance_id))
+          for ip_config in ip_configs:
+            ip_config_private_ip = ip_config.private_ip_address
+            break
+
           if ip_config_private_ip:
             break
 
         if ip_config_private_ip:
-          vm_name = vm_list_result['name']
           public_ips.append(ip_config_private_ip)
           private_ips.append(ip_config_private_ip)
-          instance_ids.append(vm_name)
+          instance_ids.append(vm.name)
 
     return public_ips, private_ips, instance_ids
 
@@ -506,14 +500,10 @@ class AzureAgent(BaseAgent):
       public_ip_address, error = self.run_and_return_exception(
         network_client.public_ip_addresses.get, resource_group, vm_network_name)
       self.raise_if_error(error, "Failed to check if Public IP existed")
-      try:
-        if public_ip_address.ip_address:
-          AppScaleLogger.log('Azure load balancer VM is available at {}'.
-                             format(public_ip_address.ip_address))
-          break
-      except CloudError as error:
-        return "There was a problem creating the Virtual Machine due to the " \
-               "error: {0}".format(error.message)
+      if public_ip_address.ip_address:
+        AppScaleLogger.log('Azure load balancer VM is available at {}'.
+                           format(public_ip_address.ip_address))
+        break
       AppScaleLogger.verbose("Waiting {} second(s) for IP address to be "
                              "available".format(self.SLEEP_TIME), verbose)
       time.sleep(self.SLEEP_TIME)
@@ -567,32 +557,30 @@ class AzureAgent(BaseAgent):
         resource_group)
     self.raise_if_error(error, "Error adding instances to existing Scale Set")
 
-    vmss_list = self.get_properties(vmss_list, ['name'],
-        raise_exception=True,
+    vmss_list_results = self.convert_to_list(vmss_list, raise_exception=True,
         err_msg="Error adding instances to existing Scale Set")
 
-    for vmss in vmss_list:
-      vmss_name = vmss['name']
+    for vmss in vmss_list_results:
       vm_list, error = self.run_and_return_exception(
           compute_client.virtual_machine_scale_set_vms.list,
-          resource_group, vmss_name)
+          resource_group, vmss.name)
       self.raise_if_error(error, "Error adding instances to existing Scale Set "
-                                 "{}".format(vmss_name))
+                                 "{}".format(vmss.name))
       ss_instance_count = 0
       try:
         for _ in vm_list:
           ss_instance_count += 1
       except CloudError as error:
         raise AgentRuntimeException("Error adding instances to existing Scale "
-            "Set {}: {}".format(vmss_name, error.message))
+            "Set {}: {}".format(vmss.name, error.message))
       if ss_instance_count >= self.MAX_VMSS_CAPACITY:
         continue
 
       scaleset, error = self.run_and_return_exception(
           compute_client.virtual_machine_scale_sets.get,
-          resource_group, vmss_name)
+          resource_group, vmss.name)
       self.raise_if_error(error, "Error adding instances to existing Scale Set "
-                                 "{}".format(vmss_name))
+                                 "{}".format(vmss.name))
       ss_upgrade_policy = scaleset.upgrade_policy
       ss_location = scaleset.location
       ss_profile = scaleset.virtual_machine_profile
@@ -609,12 +597,12 @@ class AzureAgent(BaseAgent):
 
       create_update_response, error = self.run_and_return_exception(
         compute_client.virtual_machine_scale_sets.create_or_update,
-          resource_group, vmss_name, scaleset)
+          resource_group, vmss.name, scaleset)
 
       self.raise_if_error(error, "There was a problem while updating the "
-                                 "Scale Set {0}".format(vmss_name))
+                                 "Scale Set {0}".format(vmss.name))
 
-      self.wait_for_ss_update(new_capacity, create_update_response, vmss_name)
+      self.wait_for_ss_update(new_capacity, create_update_response, vmss.name)
 
       newly_added = new_capacity - ss_instance_count
       num_instances_added += newly_added
@@ -838,24 +826,22 @@ class AzureAgent(BaseAgent):
       vmss_vm_delete_threads = []
       vmss_vm_delete_threads_results = [None for _ in range(len(instances_to_delete))]
       index = 0
-      vmss_list_results = self.get_properties(vmss_list, ['name'],
+      vmss_list_results = self.convert_to_list(vmss_list,
           raise_exception=True, err_msg="Error terminating instances")
 
       for vmss in vmss_list_results:
-        vmss_name = vmss['name']
         vm_list, error = self.run_and_return_exception(
             compute_client.virtual_machine_scale_set_vms.list,
-            resource_group, vmss_name)
+            resource_group, vmss.name)
         self.raise_if_error(error, "Error terminating instances")
-        vm_list_results = self.get_properties(
-            vm_list, ['name', 'instance_id'], raise_exception=True,
+        vm_list_results = self.convert_to_list(vm_list, raise_exception=True,
             err_msg="Error terminating instances")
         for vm in vm_list_results:
-          if vm['name'] in instances_to_delete:
-            instances_to_delete.remove(vm['name'])
+          if vm.name in instances_to_delete:
+            instances_to_delete.remove(vm.name)
             thread = threading.Thread(target=self.delete_vmss_instance,
                                       args=(compute_client, parameters,
-                                            vmss_name, vm['instance_id'],
+                                            vmss.name, vm.instance_id,
                                             vmss_vm_delete_threads, index))
             index += 1
             thread.start()
@@ -879,19 +865,18 @@ class AzureAgent(BaseAgent):
       vmss_delete_threads = []
       vmss_delete_threads_results = []
       index = 0
-      vmss_list_results = self.get_properties(vmss_list, ['name'],
+      vmss_list_results = self.convert_to_list(vmss_list,
           raise_exception=True, err_msg="Error terminating instances")
       for vmss in vmss_list_results:
-        vmss_name = vmss['name']
         vm_list, error = self.run_and_return_exception(
             compute_client.virtual_machine_scale_set_vms.list,
-            resource_group, vmss_name)
+            resource_group, vmss.name)
         self.raise_if_error(error, "Error terminating instances")
 
         if not any(True for _ in vm_list):
           thread = threading.Thread(
             target=self.delete_virtual_machine_scale_set, args=(
-              compute_client, parameters, vmss_name,
+              compute_client, parameters, vmss.name,
               vmss_delete_threads_results, index))
           index += 1
           thread.start()
@@ -918,23 +903,22 @@ class AzureAgent(BaseAgent):
     vmss_delete_threads = []
     vmss_delete_threads_results = []
     index = 0
-    vmss_list_results, error = self.get_properties(vmss_list, ['name'],
+    vmss_list_results = self.convert_to_list(vmss_list,
         raise_exception=True, err_msg="Error terminating instances")
 
     for vmss in vmss_list_results:
-      vmss_name = vmss['name']
       vm_list, error = self.run_and_return_exception(
           compute_client.virtual_machine_scale_set_vms.list,
-          resource_group, vmss_name)
+          resource_group, vmss.name)
       self.raise_if_error(error, "Error terminating instances")
 
-      vm_list_results, error = self.get_properties(vm_list, ['name'],
+      vm_list_results = self.convert_to_list(vm_list,
           raise_exception=True, err_msg="Error terminating instances")
 
       for vm in vm_list_results:
-        delete_ss_instances.append(vm['name'])
+        delete_ss_instances.append(vm.name)
       thread = threading.Thread(target=self.delete_virtual_machine_scale_set,
-                                args=(compute_client, parameters, vmss_name,
+                                args=(compute_client, parameters, vmss.name,
                                       vmss_delete_threads_results, index))
       index += 1
       thread.start()
@@ -1045,14 +1029,14 @@ class AzureAgent(BaseAgent):
       return
 
     already_deleted = True
-    vm_list_results, error = self.get_properties(vm_list, ['name'])
+    vm_list_results, error = self.convert_to_list(vm_list)
     if error:
       results[index] = (error.message,
                         "There was a problem while deleting {0}".format(
                           vm_info))
       return
     for vm in vm_list_results:
-      if instance_id == vm['name']:
+      if instance_id == vm.name:
         already_deleted = False
         break
     if already_deleted:
@@ -1080,14 +1064,14 @@ class AzureAgent(BaseAgent):
       results[index] = (error.message,
           "There was a problem while deleting {0}".format(vm_info))
       return
-    vm_list_results, error = self.get_properties(vm_list, ['name'])
+    vm_list_results, error = self.convert_to_list(vm_list)
     if error:
       results[index] = (error.message,
                         "There was a problem while deleting {0}".format(
                           vm_info))
       return
     for vm in vm_list_results:
-      if instance_id == vm['name']:
+      if instance_id == vm.name:
         results[index] = ("VM still up",
             "{0} has not been successfully deleted".format(vm_info))
         return
@@ -1112,14 +1096,13 @@ class AzureAgent(BaseAgent):
       return "There was a problem while deleting the Virtual Machine {0} due " \
              "to the error: {1}".format(vm_name, error.message)
     already_deleted = True
-    virtual_machines_result, error = self.get_properties(virtual_machines,
-                                                         ['name'])
+    virtual_machines_result, error = self.convert_to_list(virtual_machines)
 
     if error:
       return "There was a problem while checking the Virtual Machine {0} due " \
              "to the error: {1}".format(vm_name, error.message)
     for vm in virtual_machines_result:
-      if vm_name == vm['name']:
+      if vm_name == vm.name:
         already_deleted = False
         break
     if already_deleted:
@@ -1144,13 +1127,12 @@ class AzureAgent(BaseAgent):
     if error:
       return "There was a problem while deleting the Virtual Machine {0} due " \
              "to the error: {1}".format(vm_name, error.message)
-    virtual_machines_result, error = self.get_properties(virtual_machines,
-                                                         ['name'])
+    virtual_machines_result, error = self.convert_to_list(virtual_machines)
     if error:
       return "There was a problem while checking the Virtual Machine {0} due " \
              "to the error: {1}".format(vm_name, error.message)
     for vm in virtual_machines_result:
-      if vm_name == vm['name']:
+      if vm_name == vm.name:
         return "Virtual Machine {0} has not been successfully " \
                "deleted".format(vm_name)
 
@@ -1598,14 +1580,12 @@ class AzureAgent(BaseAgent):
     except CloudError as exception:
       return (None, exception)
 
-  def get_properties(self, objs, properties, raise_exception=False,
-                     err_msg=""):
+  def convert_to_list(self, page_iterator, raise_exception=False, err_msg=""):
     """ Gets the given properties of an object and returns it in a
     dictionary. Either raises or returns an exception based on
     'raise_exception'.
     Args:
-      objs: The objects to iterate through.
-      properties: The list of properties to get from each object.
+      page_iterator: The objects to iterate through.
       raise_exception: If True, raise exception. Otherwise return exception.
     Returns:
       A tuple containing either (result, None) or (None, Exception). Where
@@ -1617,12 +1597,7 @@ class AzureAgent(BaseAgent):
       occurs.
     """
     try:
-      result = []
-      for obj in objs:
-        property_results = {}
-        for property_name in properties:
-          property_results[property_name] = (getattr(obj, property_name))
-        result.append(property_results)
+      result = list(page_iterator)
       if raise_exception:
         return result
       return (result, None)
