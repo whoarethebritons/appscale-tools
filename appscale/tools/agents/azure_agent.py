@@ -561,26 +561,26 @@ class AzureAgent(BaseAgent):
         err_msg="Error adding instances to existing Scale Set")
 
     for vmss in vmss_list_results:
+      scaleset_info = "Scale Set {}".format(vmss.name)
       vm_list, error = self.run_and_return_exception(
           compute_client.virtual_machine_scale_set_vms.list,
           resource_group, vmss.name)
-      self.raise_if_error(error, "Error adding instances to existing Scale Set "
-                                 "{}".format(vmss.name))
-      ss_instance_count = 0
-      try:
-        for _ in vm_list:
-          ss_instance_count += 1
-      except CloudError as error:
-        raise AgentRuntimeException("Error adding instances to existing Scale "
-            "Set {}: {}".format(vmss.name, error.message))
+      self.raise_if_error(error, "Error adding instances to existing"
+                          .format(scaleset_info))
+      vm_list_results = self.convert_to_list(vm_list, raise_exception=True,
+           err_msg="Error adding instances to existing {}".format(
+           scaleset_info))
+
+      ss_instance_count = len(vm_list_results)
+
       if ss_instance_count >= self.MAX_VMSS_CAPACITY:
         continue
 
       scaleset, error = self.run_and_return_exception(
           compute_client.virtual_machine_scale_sets.get,
           resource_group, vmss.name)
-      self.raise_if_error(error, "Error adding instances to existing Scale Set "
-                                 "{}".format(vmss.name))
+      self.raise_if_error(error, "Error adding instances to existing "
+                                 "{}".format(scaleset_info))
       ss_upgrade_policy = scaleset.upgrade_policy
       ss_location = scaleset.location
       ss_profile = scaleset.virtual_machine_profile
@@ -597,10 +597,10 @@ class AzureAgent(BaseAgent):
 
       create_update_response, error = self.run_and_return_exception(
         compute_client.virtual_machine_scale_sets.create_or_update,
-          resource_group, vmss.name, scaleset)
+        resource_group, vmss.name, scaleset)
 
       self.raise_if_error(error, "There was a problem while updating the "
-                                 "Scale Set {0}".format(vmss.name))
+                                 "{0}".format(scaleset_info))
 
       self.wait_for_ss_update(new_capacity, create_update_response, vmss.name)
 
@@ -992,15 +992,14 @@ class AzureAgent(BaseAgent):
           resource_group, vmss_name)
     if error:
       results[index] = (error.message,
-          "There was a problem while deleting the Scale Set {0}".format(
-          vmss_name))
+        "There was a problem while deleting the Scale Set {0}".format(vmss_name))
       return
 
     resource_name = 'Virtual Machine Scale Set' + ":" + vmss_name
     self.sleep_until_delete_operation_done(delete_response, resource_name,
                                            self.MAX_VM_UPDATE_TIME, verbose)
-    AppScaleLogger.verbose("Virtual Machine Scale Set {} has been successfully "
-                           "deleted.".format(vmss_name), verbose)
+    AppScaleLogger.verbose("{} has been successfully deleted.".format(
+        resource_name), verbose)
 
   def delete_vmss_instance(self, compute_client, parameters, vmss_name,
                            instance_id, results, index):
@@ -1033,8 +1032,7 @@ class AzureAgent(BaseAgent):
     vm_list_results, error = self.convert_to_list(vm_list)
     if error:
       results[index] = (error.message,
-                        "There was a problem while deleting {0}".format(
-                          vm_info))
+          "There was a problem while deleting {0}".format(vm_info))
       return
     for vm in vm_list_results:
       if instance_id == vm.instance_id:
@@ -1068,8 +1066,7 @@ class AzureAgent(BaseAgent):
     vm_list_results, error = self.convert_to_list(vm_list)
     if error:
       results[index] = (error.message,
-                        "There was a problem while deleting {0}".format(
-                          vm_info))
+          "There was a problem while deleting {0}".format(vm_info))
       return
     for vm in vm_list_results:
       if instance_id == vm.instance_id:
