@@ -169,11 +169,13 @@ class RemoteHelper(object):
 
     for instance_type, load_balancer_nodes in load_balancer_roles.items():
       # Copy parameters so we can modify the instance type.
-      instance_type_params = params.copy()
-      instance_type_params['instance_type'] = instance_type
+      additional_params = params.copy()
+      additional_params['instance_type'] = instance_type
+      additional_params['disks'] = any([node.disk for node in
+                                        load_balancer_nodes])
 
       instance_ids, public_ips, private_ips = cls.spawn_nodes_in_cloud(
-        options, agent, instance_type_params, spawned_instance_ids,
+        options, agent, additional_params, spawned_instance_ids,
         count=len(load_balancer_nodes), load_balancer=True)
 
       # Keep track of instances we have started.
@@ -195,16 +197,17 @@ class RemoteHelper(object):
     AppScaleLogger.log("\nPlease wait for AppScale to prepare your machines "
                        "for use. This can take few minutes.")
 
-    for _, nodes in instance_type_roles.items():
+    for disks_needed, nodes in instance_type_roles.items():
       for instance_type, other_nodes in nodes.items():
         if len(other_nodes) <= 0:
           break
         # Copy parameters so we can modify the instance type.
-        instance_type_params = params.copy()
-        instance_type_params['instance_type'] = instance_type
+        additional_params = params.copy()
+        additional_params['instance_type'] = instance_type
+        additional_params['disks'] = (disks_needed == 'with_disks')
 
         _instance_ids, _public_ips, _private_ips =\
-          cls.spawn_nodes_in_cloud(options, agent, instance_type_params,
+          cls.spawn_nodes_in_cloud(options, agent, additional_params,
                                    spawned_instance_ids, count=len(other_nodes))
 
         # Keep track of instances we have started.
