@@ -565,7 +565,7 @@ class AzureAgent(BaseAgent):
       vm_list, error = self.run_and_return_exception(
           compute_client.virtual_machine_scale_set_vms.list,
           resource_group, vmss.name)
-      self.raise_if_error(error, "Error adding instances to existing"
+      self.raise_if_error(error, "Error adding instances to existing {}"
                           .format(scaleset_info))
       vm_list_results = self.convert_to_list(vm_list, raise_exception=True,
            err_msg="Error adding instances to existing {}".format(
@@ -1564,7 +1564,8 @@ class AzureAgent(BaseAgent):
       return True
     return False
 
-  def run_and_return_exception(self, method, *args):
+  @classmethod
+  def run_and_return_exception(cls, method, *args):
     """ Runs a given method with args catching CloudError and returning it.
     Args:
       method: The method to call.
@@ -1578,7 +1579,8 @@ class AzureAgent(BaseAgent):
     except CloudError as exception:
       return (None, exception)
 
-  def convert_to_list(self, page_iterator, raise_exception=False, err_msg=""):
+  @classmethod
+  def convert_to_list(cls, page_iterator, raise_exception=False, err_msg=""):
     """ Gets the given properties of an object and returns it in a
     dictionary. Either raises or returns an exception based on
     'raise_exception'.
@@ -1604,7 +1606,8 @@ class AzureAgent(BaseAgent):
         raise AgentRuntimeException("{} : {}".format(err_msg, error.message))
       return (None, error)
 
-  def raise_if_error(self, error, message):
+  @classmethod
+  def raise_if_error(cls, error, message):
     """Raises an AgentRuntimeException with the given message if error is not
     None.
 
