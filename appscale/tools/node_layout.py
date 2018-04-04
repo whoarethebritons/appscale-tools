@@ -268,9 +268,11 @@ class NodeLayout():
 
       instance_type = node_set.get('instance_type', self.default_instance_type)
 
-      if not instance_type:
-        self.invalid("Must set a default instance type or specify instance "
-                     "type per role.")
+      if self.infrastructure:
+        if not instance_type:
+          self.invalid("Must set a default instance type or specify instance "
+                       "type per role.")
+
       # Check if this is an allowed instance type.
       if instance_type in ParseArgs.DISALLOWED_INSTANCE_TYPES and \
           not (self.force or self.test):
@@ -546,8 +548,9 @@ class NodeLayout():
         open_nodes.append(old_node)
         continue
       for _, node in enumerate(nodes_copy):
-        # Match nodes based on jobs/roles.
-        if set(old_node_roles) == set(node.roles):
+        # Match nodes based on jobs/roles and the instance type specified.
+        if set(old_node_roles) == set(node.roles) \
+                and old_node.get('instance_type') == node.instance_type:
           nodes_copy.remove(node)
           node.from_json(old_node)
           if node.is_valid():
@@ -557,19 +560,19 @@ class NodeLayout():
             return None
           break
     for open_node in open_nodes:
-      try:
-        node = nodes_copy.pop()
-      except IndexError:
-        return None
-      # Match nodes based on jobs/roles.
-      roles = node.roles
-      node.from_json(open_node)
-      node.roles = roles
-      if node.is_valid():
-        nodes.append(node)
-      else:
-        # Locations JSON is incorrect if we get here.
-        return None
+      for node in nodes_copy:
+        # Match nodes based on jobs/roles and the instance type specified.
+        if node.instance_type == open_node.get('instance_type'):
+          roles = node.roles
+          node.from_json(open_node)
+          node.roles = roles
+          if node.is_valid():
+            nodes.append(node)
+          else:
+            # Locations JSON is incorrect if we get here.
+            return None
+        else:
+          continue
 
     # If these lengths are equal all nodes were matched.
     if len(nodes) == len(self.nodes):

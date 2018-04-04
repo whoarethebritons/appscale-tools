@@ -154,15 +154,13 @@ class RemoteHelper(object):
     agent.configure_instance_security(params)
 
     load_balancer_roles = {}
-
-    instance_type_roles = {'with_disks':{}, 'without_disks': {}}
+    instance_type_roles = {'with_disks':{},'without_disks':{}}
 
     for node in node_layout.get_nodes('load_balancer', True):
       load_balancer_roles.setdefault(node.instance_type, []).append(node)
 
     for node in node_layout.get_nodes('load_balancer', False):
-      instance_type = instance_type_roles['with_disks'] if node.disk else \
-        instance_type_roles['without_disks']
+      instance_type = instance_type_roles['with_disks'] if node.disk else instance_type_roles['without_disks']
       instance_type.setdefault(node.instance_type, []).append(node)
 
     spawned_instance_ids = []
@@ -174,9 +172,23 @@ class RemoteHelper(object):
       additional_params['disks'] = any([node.disk for node in
                                         load_balancer_nodes])
 
-      instance_ids, public_ips, private_ips = cls.spawn_nodes_in_cloud(
-        options, agent, additional_params, spawned_instance_ids,
-        count=len(load_balancer_nodes), load_balancer=True)
+      try:
+        instance_ids, public_ips, private_ips = cls.spawn_nodes_in_cloud(
+          agent, additional_params, count=len(load_balancer_nodes),
+          load_balancer=True)
+      except (AgentRuntimeException, BotoServerError):
+        AppScaleLogger.warn("AppScale was unable to start the requested number "
+                            "of instances, attempting to terminate those that "
+                            "were started.")
+        if len(spawned_instance_ids) > 0:
+          AppScaleLogger.warn("Attempting to terminate those that were started.")
+          cls.terminate_spawned_instances(spawned_instance_ids, agent, params)
+
+        # Cleanup the keyname since it failed.
+        LocalState.cleanup_keyname(options.keyname)
+
+        # Re-raise the original exception.
+        raise
 
       # Keep track of instances we have started.
       spawned_instance_ids.extend(instance_ids)
@@ -206,9 +218,22 @@ class RemoteHelper(object):
         additional_params['instance_type'] = instance_type
         additional_params['disks'] = (disks_needed == 'with_disks')
 
-        _instance_ids, _public_ips, _private_ips =\
-          cls.spawn_nodes_in_cloud(options, agent, additional_params,
-                                   spawned_instance_ids, count=len(other_nodes))
+        try:
+          _instance_ids, _public_ips, _private_ips = cls.spawn_nodes_in_cloud(
+            agent, additional_params, count=len(other_nodes))
+        except (AgentRuntimeException, BotoServerError):
+          AppScaleLogger.warn("AppScale was unable to start the requested number "
+                              "of instances, attempting to terminate those that "
+                              "were started.")
+          if len(spawned_instance_ids) > 0:
+            AppScaleLogger.warn("Attempting to terminate those that were started.")
+            cls.terminate_spawned_instances(spawned_instance_ids, agent, params)
+
+          # Cleanup the keyname since it failed.
+          LocalState.cleanup_keyname(options.keyname)
+
+          # Re-raise the original exception.
+          raise
 
         # Keep track of instances we have started.
         spawned_instance_ids.extend(_instance_ids)
@@ -318,20 +343,16 @@ class RemoteHelper(object):
 
 
   @classmethod
-  def spawn_nodes_in_cloud(cls, options, agent, params, spawned_instance_ids,
-                           count=1, load_balancer=False):
+  def spawn_nodes_in_cloud(cls, agent, params, count=1, load_balancer=False):
     """Starts count number of virtual machines in a cloud infrastructure with
     public ips.
 
     This method also prepares the virtual machine for use by the AppScale Tools.
 
     Args:
-      options: A Namespace that specifies the cloud infrastructure to use, as
-        well as how to interact with that cloud.
       agent: The agent to start VMs with, must be passed as an argument
         because agents cannot be made twice.
       params: The parameters to be sent to the agent.
-      spawned_instance_ids: Ids of instances that AppScale has started.
       count: A int, the number of instances to start.
       load_balancer: A boolean indicating whether the spawned instance should
         have a public ip or not.
@@ -339,23 +360,9 @@ class RemoteHelper(object):
       The instance ID, public IP address, and private IP address of the machine
         that was started.
     """
-    try:
-      instance_ids, public_ips, private_ips = agent.run_instances(
-        count=count, parameters=params, security_configured=True,
-        public_ip_needed=load_balancer)
-    except (AgentRuntimeException, BotoServerError):
-      AppScaleLogger.warn("AppScale was unable to start the requested number "
-                          "of instances, attempting to terminate those that "
-                          "were started.")
-      if len(spawned_instance_ids) > 0:
-        AppScaleLogger.warn("Attempting to terminate those that were started.")
-        cls.terminate_spawned_instances(spawned_instance_ids, agent, params)
-
-      # Cleanup the keyname since it failed.
-      LocalState.cleanup_keyname(options.keyname)
-
-      # Re-raise the original exception.
-      raise
+    instance_ids, public_ips, private_ips = agent.run_instances(
+      count=count, parameters=params, security_configured=True,
+      public_ip_needed=load_balancer)
 
     return instance_ids, public_ips, private_ips
 
@@ -899,12 +906,11 @@ class RemoteHelper(object):
     """
     terminate_params = params.copy()
     terminate_params[agent.PARAM_INSTANCE_IDS] = spawned_instance_ids
-    for _ in range(len(spawned_instance_ids)):
-      try:
-        agent.terminate_instances(params)
-      except (AgentRuntimeException, BotoServerError):
-        AppScaleLogger.warn("AppScale failed to terminate instance(s) with "
-                            "id(s): {}".format(spawned_instance_ids))
+    try:
+      agent.terminate_instances(terminate_params)
+    except (AgentRuntimeException, BotoServerError):
+      AppScaleLogger.warn("AppScale failed to terminate instance(s) with "
+                          "id(s): {}".format(spawned_instance_ids))
 
 
   @classmethod
@@ -1085,13 +1091,14 @@ class RemoteHelper(object):
 
 
   @classmethod
-  def copy_app_to_host(cls, app_location, keyname, is_verbose, extras=None):
+  def copy_app_to_host(cls, app_location, app_id, keyname, is_verbose, extras=None):
     """Copies the given application to a machine running the Login service
     within an AppScale deployment.
 
     Args:
       app_location: The location on the local filesystem where the application
         can be found.
+      app_id: The project to use for this application.
       keyname: The name of the SSH keypair that uniquely identifies this
         AppScale deployment.
       is_verbose: A bool that indicates if we should print the commands we exec
@@ -1102,8 +1109,6 @@ class RemoteHelper(object):
       A str corresponding to the location on the remote filesystem where the
         application was copied to.
     """
-    app_id = AppEngineHelper.get_app_id_from_app_config(app_location)
-
     AppScaleLogger.log("Tarring application")
     rand = str(uuid.uuid4()).replace('-', '')[:8]
     local_tarred_app = "{0}/appscale-app-{1}-{2}.tar.gz".\
