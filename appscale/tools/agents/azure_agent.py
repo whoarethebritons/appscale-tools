@@ -1076,13 +1076,16 @@ class AzureAgent(BaseAgent):
     AppScaleLogger.verbose("{0} has been successfully deleted".format(vm_info),
                            verbose)
 
-  def delete_virtual_machine(self, compute_client, parameters, vm_name):
+  def delete_virtual_machine(self, compute_client, parameters, vm_name, 
+                             results, index):
     """ Deletes the virtual machine from the resource_group specified.
     Args:
       compute_client: An instance of the Compute Management client.
       parameters: A dict, containing all the parameters necessary to
         authenticate this user with Azure.
       vm_name: The name of the virtual machine to be deleted.
+      results: An array containing the results from all the thread operations.
+      index: The index of results this thread should assign its result to.
     """
     resource_group = parameters[self.PARAM_RESOURCE_GROUP]
     verbose = parameters[self.PARAM_VERBOSE]
@@ -1091,13 +1094,13 @@ class AzureAgent(BaseAgent):
     virtual_machines, error = self.run_and_return_exception(
         compute_client.virtual_machines.list, resource_group)
     if error:
-      return "There was a problem while deleting the Virtual Machine {0} due " \
+      results[index] = "There was a problem while deleting the Virtual Machine {0} due " \
              "to the error: {1}".format(vm_name, error.message)
     already_deleted = True
     virtual_machines_result, error = self.convert_to_list(virtual_machines)
 
     if error:
-      return "There was a problem while checking the Virtual Machine {0} due " \
+      results[index] = "There was a problem while checking the Virtual Machine {0} due " \
              "to the error: {1}".format(vm_name, error.message)
     for vm in virtual_machines_result:
       if vm_name == vm.name:
@@ -1112,7 +1115,7 @@ class AzureAgent(BaseAgent):
     result, error = self.run_and_return_exception(
         compute_client.virtual_machines.delete, resource_group, vm_name)
     if error:
-      return "There was a problem while deleting the Virtual Machine {0} due " \
+      results[index] = "There was a problem while deleting the Virtual Machine {0} due " \
              "to the error: {1}".format(vm_name, error.message)
 
     resource_name = 'Virtual Machine' + ':' + vm_name
@@ -1123,15 +1126,15 @@ class AzureAgent(BaseAgent):
     virtual_machines, error = self.run_and_return_exception(
         compute_client.virtual_machines.list, resource_group)
     if error:
-      return "There was a problem while deleting the Virtual Machine {0} due " \
+      results[index] = "There was a problem while deleting the Virtual Machine {0} due " \
              "to the error: {1}".format(vm_name, error.message)
     virtual_machines_result, error = self.convert_to_list(virtual_machines)
     if error:
-      return "There was a problem while checking the Virtual Machine {0} due " \
+      results[index] = "There was a problem while checking the Virtual Machine {0} due " \
              "to the error: {1}".format(vm_name, error.message)
     for vm in virtual_machines_result:
       if vm_name == vm.name:
-        return "Virtual Machine {0} has not been successfully " \
+        results[index] = "Virtual Machine {0} has not been successfully " \
                "deleted".format(vm_name)
 
     AppScaleLogger.verbose("Virtual Machine {} has been successfully deleted.".
