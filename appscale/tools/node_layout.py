@@ -560,14 +560,16 @@ class NodeLayout():
             return None
           break
     for open_node in open_nodes:
-      for node in nodes_copy:
+      for _, node in enumerate(nodes_copy):
         # Match nodes based on jobs/roles and the instance type specified.
         if node.instance_type == open_node.get('instance_type'):
+          nodes_copy.remove(node)
           roles = node.roles
           node.from_json(open_node)
           node.roles = roles
           if node.is_valid():
             nodes.append(node)
+            break
           else:
             # Locations JSON is incorrect if we get here.
             return None
