@@ -1,4 +1,5 @@
 import boto
+import glob
 
 from appscale.tools.appscale_logger import AppScaleLogger
 from ec2_agent import EC2Agent
@@ -88,3 +89,33 @@ class EucalyptusAgent(EC2Agent):
     else:
       AppScaleLogger.log('Availability zone {0} does not exist'.format(zone))
       return False
+
+  def attach_disk(self, parameters, disk_name, instance_id):
+    """ Attaches the Elastic Block Store volume specified in 'disk_name' to this
+    virtual machine.
+
+    Args:
+      parameters: A dict with keys for each parameter needed to connect to AWS.
+      disk_name: A str naming the EBS mount to attach to this machine.
+      instance_id: A str naming the id of the instance that the disk should be
+        attached to. In practice, callers add disks to their own instances.
+    Returns:
+      A regex that will match a symlink to the mount point.
+    """
+
+    try:
+      conn = self.open_connection(parameters)
+      AppScaleLogger.log('Attaching volume {0} to instance {1}'.format(
+        disk_name, instance_id))
+      conn.attach_volume(disk_name, instance_id, '/dev/sdc')
+    except boto.exception.EC2ResponseError as exception:
+      AppScaleLogger.log('An error occurred when trying to attach volume {0} '
+          'to instance {1}.'.format(disk_name, instance_id))
+      self.handle_failure('EC2 response error while attaching volume:' +
+        exception.error_message)
+    disk_glob = '/dev/disk/by-id/*euca-{}*'.format(disk_name)
+    try:
+      glob.glob(disk_glob)[0]
+    except IndexError as e:
+      self.handle_failure('Could not find disk name {} with regex {}'.format(
+          disk_name, disk_glob), e)
