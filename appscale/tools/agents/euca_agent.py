@@ -102,12 +102,15 @@ class EucalyptusAgent(EC2Agent):
     Returns:
       A regex that will match a symlink to the mount point.
     """
-
+    if glob.glob("/dev/vd*"):
+      mount_point = '/dev/vdc'
+    else:
+      mount_point = '/dev/sdc'
     try:
       conn = self.open_connection(parameters)
       AppScaleLogger.log('Attaching volume {0} to instance {1}'.format(
         disk_name, instance_id))
-      conn.attach_volume(disk_name, instance_id, '/dev/sdc')
+      conn.attach_volume(disk_name, instance_id, mount_point)
     except boto.exception.EC2ResponseError as exception:
       AppScaleLogger.log('An error occurred when trying to attach volume {0} '
           'to instance {1}.'.format(disk_name, instance_id))
