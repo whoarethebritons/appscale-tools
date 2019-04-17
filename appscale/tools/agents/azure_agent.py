@@ -150,6 +150,9 @@ class AzureAgent(BaseAgent):
   # (Takes longer than the creation time for other resources.)
   MAX_VM_UPDATE_TIME = 240
 
+  # The maximum number of seconds to wait for an Azure resource to be deleted.
+  MAX_DELETE_WAIT = 300
+
   # The maximum number of seconds to wait for an Azure scale set to be created.
   MAX_VMSS_WAIT_TIME = 300
 
@@ -1203,7 +1206,7 @@ class AzureAgent(BaseAgent):
           "cloud configuration. Reason: {}".format(vmss_name, e.message))
     resource_name = 'Virtual Machine Scale Set' + ":" + vmss_name
     self.sleep_until_delete_operation_done(delete_response, resource_name,
-                                           self.MAX_VM_UPDATE_TIME, verbose)
+                                           self.MAX_DELETE_WAIT, verbose)
     AppScaleLogger.verbose("Virtual Machine Scale Set {} has been successfully "
                            "deleted.".format(vmss_name), verbose)
 
@@ -1240,7 +1243,7 @@ class AzureAgent(BaseAgent):
                                                    e.message))
     resource_name = 'Virtual Machine Instance ' + instance_id
     self.sleep_until_delete_operation_done(result, resource_name,
-                                           self.MAX_VM_UPDATE_TIME, verbose)
+                                           self.MAX_DELETE_WAIT, verbose)
 
     AppScaleLogger.verbose("{0} from scaleset {1} has been successfully "
                            "deleted".format(instance_id, vmss_name), verbose)
@@ -1270,7 +1273,7 @@ class AzureAgent(BaseAgent):
           "cloud configuration. Reason: {}".format(vm_name, e.message))
     resource_name = 'Virtual Machine' + ':' + vm_name
     self.sleep_until_delete_operation_done(result, resource_name,
-                                           self.MAX_VM_UPDATE_TIME, verbose)
+                                           self.MAX_DELETE_WAIT, verbose)
     AppScaleLogger.verbose("Virtual Machine {} has been successfully deleted.".
                            format(vm_name), verbose)
 
@@ -1393,7 +1396,7 @@ class AzureAgent(BaseAgent):
         result = network_client.network_interfaces.delete(resource_group, interface.name)
         resource_name = 'Network Interface' + ':' + interface.name
         self.sleep_until_delete_operation_done(result, resource_name,
-                                               self.MAX_SLEEP_TIME, verbose)
+                                               self.MAX_DELETE_WAIT, verbose)
         AppScaleLogger.verbose("Network Interface {} has been successfully deleted.".
                                format(interface.name), verbose)
     except CloudError as error:
@@ -1415,7 +1418,7 @@ class AzureAgent(BaseAgent):
         result = network_client.public_ip_addresses.delete(resource_group, public_ip.name)
         resource_name = 'Public IP Address' + ':' + public_ip.name
         self.sleep_until_delete_operation_done(result, resource_name,
-                                               self.MAX_SLEEP_TIME, verbose)
+                                               self.MAX_DELETE_WAIT, verbose)
         AppScaleLogger.verbose("Public IP Address {} has been successfully deleted.".
                                format(public_ip.name), verbose)
     except CloudError as error:
@@ -1437,7 +1440,7 @@ class AzureAgent(BaseAgent):
         result = network_client.virtual_networks.delete(resource_group, network.name)
         resource_name = 'Virtual Network' + ':' + network.name
         self.sleep_until_delete_operation_done(result, resource_name,
-                                               self.MAX_SLEEP_TIME, verbose)
+                                               self.MAX_DELETE_WAIT, verbose)
         AppScaleLogger.verbose("Virtual Network {} has been successfully deleted.".
                                format(network.name), verbose)
     except CloudError as error:
