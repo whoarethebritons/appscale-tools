@@ -27,7 +27,6 @@ from appscale.tools import utils
 from appscale.tools.admin_api.client import (AdminClient, DEFAULT_SERVICE,
                                              DEFAULT_VERSION)
 from appscale.tools.admin_api.version import Version
-from appscale.tools.agents.factory import InfrastructureAgentFactory
 from appscale.tools.appcontroller_client import AppControllerClient
 from appscale.tools.appengine_helper import AppEngineHelper
 from appscale.tools.appscale_logger import AppScaleLogger
@@ -39,6 +38,8 @@ from appscale.tools.local_state import APPSCALE_VERSION, LocalState
 from appscale.tools.node_layout import NodeLayout
 from appscale.tools.remote_helper import RemoteHelper
 from appscale.tools.version_helper import latest_tools_version
+
+from appscale.agents.factory import InfrastructureAgentFactory
 
 
 def async_layout_upgrade(ip, keyname, script, error_bucket, verbose=False):
@@ -301,7 +302,7 @@ class AppScaleTools(object):
                       "+" if n.is_loaded else "-"),
        "{:.1f}x{}".format(n.cpu.load, n.cpu.count),
        100.0 - n.memory.available_percent,
-       " ".join("{:.1f}".format(p.used_percent) for p in n.disk.partitions),
+       " ".join('"{}" => {:.1f}'.format(p.mountpoint, p.used_percent) for p in n.disk.partitions),
        "{:.1f} {:.1f} {:.1f}".format(
          n.loadavg.last_1_min, n.loadavg.last_5_min, n.loadavg.last_15_min),
        " ".join(n.roles))
@@ -1243,6 +1244,13 @@ class AppScaleTools(object):
       queues = yaml.safe_load(queue_config)
 
     AppScaleLogger.log('Updating queues')
+
+    for queue in queues.get('queue', []):
+      if 'bucket_size' in queue or 'max_concurrent_requests' in queue:
+        AppScaleLogger.warn('Queue configuration uses unsupported rate options'
+                            ' (bucket size or max concurrent requests)')
+        break
+
     load_balancer_ip = LocalState.get_host_with_role(keyname, 'load_balancer')
     secret_key = LocalState.get_secret_key(keyname)
     admin_client = AdminClient(load_balancer_ip, secret_key)

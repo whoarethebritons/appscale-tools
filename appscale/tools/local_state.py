@@ -21,17 +21,17 @@ from string import ascii_lowercase, digits
 
 
 # AppScale-specific imports
-from appcontroller_client import AppControllerClient
-from appscale_logger import AppScaleLogger
-from custom_exceptions import AppControllerException
-from custom_exceptions import AppScaleException
-from custom_exceptions import AppScalefileException
-from custom_exceptions import BadConfigurationException
-from custom_exceptions import ShellException
+from .appcontroller_client import AppControllerClient
+from .appscale_logger import AppScaleLogger
+from .custom_exceptions import AppControllerException
+from .custom_exceptions import AppScaleException
+from .custom_exceptions import AppScalefileException
+from .custom_exceptions import BadConfigurationException
+from .custom_exceptions import ShellException
 
 
 # The version of the AppScale Tools we're running on.
-APPSCALE_VERSION = "3.7.0"
+APPSCALE_VERSION = "3.8.0"
 
 
 class LocalState(object):
@@ -232,6 +232,8 @@ class LocalState(object):
         iaas_creds['project'] = options.project
         iaas_creds['gce_user'] = getpass.getuser()
       elif options.infrastructure in ['euca', 'ec2']:
+        iaas_creds['aws_subnet_id'] = options.aws_subnet_id
+        iaas_creds['aws_vpc_id'] = options.aws_vpc_id
         iaas_creds['EC2_ACCESS_KEY'] = options.EC2_ACCESS_KEY
         iaas_creds['EC2_SECRET_KEY'] = options.EC2_SECRET_KEY
         iaas_creds['EC2_URL'] = options.EC2_URL

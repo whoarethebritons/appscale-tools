@@ -33,7 +33,7 @@ http://www.appscale.com
 
 setup(
   name='appscale-tools',
-  version='3.7.0',
+  version='3.8.0',
   description='A set of command-line tools for interacting with AppScale',
   long_description=long_description,
   author='AppScale Systems, Inc.',
@@ -43,6 +43,7 @@ setup(
   platforms='Posix; MacOS X',
   install_requires=[
     'adal>=0.4.7',
+    'appscale-agents',
     'azure==2.0.0',
     'azure-mgmt-marketplaceordering',
     'cryptography>=2.3.0',
@@ -51,6 +52,7 @@ setup(
     'google-api-python-client==1.5.4',
     'haikunator',
     'httplib2',
+    'keyring<19.0.0',
     'msrestazure==0.4.34',
     'oauth2client==4.0.0',
     'pyOpenSSL>=18.0.0',
@@ -75,7 +77,7 @@ setup(
   ],
   namespace_packages=['appscale'],
   packages=['appscale', 'appscale.tools', 'appscale.tools.admin_api',
-            'appscale.tools.agents', 'appscale.tools.scripts'],
+            'appscale.tools.scripts'],
   entry_points={
     'console_scripts': [
       'appscale=appscale.tools.scripts.appscale:main',
