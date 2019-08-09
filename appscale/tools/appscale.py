@@ -45,7 +45,7 @@ class AppScale():
 
 
   # This is the command to terminate a deployment.
-  TERMINATE = "ruby /root/appscale/AppController/terminate.rb clean"
+  TERMINATE = "ruby /home/appscale/appscale/AppController/terminate.rb clean"
 
 
   # Role name for login node.
@@ -369,11 +369,11 @@ Available commands:
         return False
 
       for ip in all_ips:
-        ssh_to_ip = 'ssh -i {key} -o StrictHostkeyChecking=no root@{ip} true'\
+        ssh_to_ip = 'ssh -i {key} -o StrictHostkeyChecking=no appscale@{ip} true'\
           .format(key=remote_key, ip=ip)
         try:
           RemoteHelper.ssh(
-            head_node.public_ip, keyname, ssh_to_ip, verbose, user='root')
+            head_node.public_ip, keyname, ssh_to_ip, verbose, user='appscale')
         except ShellException:
           return False
       return True
@@ -420,7 +420,7 @@ Available commands:
       a password to the given machine.
     """
     try:
-      RemoteHelper.ssh(ip, keyname, 'ls', is_verbose, user='root')
+      RemoteHelper.ssh(ip, keyname, 'ls', is_verbose, user='appscale')
       return True
     except ShellException:
       return False
@@ -469,7 +469,7 @@ Available commands:
 
     # construct the ssh command to exec with that IP address
     command = ["ssh", "-o", "StrictHostkeyChecking=no", "-i",
-      self.get_key_location(keyname), "root@" + ip]
+      self.get_key_location(keyname), "appscale@" + ip]
 
     # exec the ssh command
     try:
@@ -729,7 +729,7 @@ Available commands:
     # construct the ssh command to exec with that IP address
     tail = "tail -F /var/log/appscale/{0}".format(file_regex)
     command = ["ssh", "-o", "StrictHostkeyChecking=no", "-i",
-      self.get_key_location(keyname), "root@" + ip, tail]
+      self.get_key_location(keyname), "appscale@" + ip, tail]
 
     # exec the ssh command
     subprocess.call(command)

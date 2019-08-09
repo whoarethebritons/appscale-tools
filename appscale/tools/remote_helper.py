@@ -63,10 +63,10 @@ class RemoteHelper(object):
   MAX_WAIT_TIME = 15 * 60
 
 
-  # The message that is sent if we try to log into a VM as the root user but
-  # root login isn't enabled yet.
+  # The message that is sent if we try to log into a VM as the appscale user but
+  # appscale login isn't enabled yet.
   LOGIN_AS_UBUNTU_USER = ('Please login as the user "(.*)" rather than the '
-    'user "root"')
+    'user "appscale"')
 
 
   APPCONTROLLER_CRASHLOG_PATH = "/var/log/appscale/appcontroller_crashlog.txt"
@@ -236,8 +236,8 @@ class RemoteHelper(object):
     return node_layout
 
   @classmethod
-  def enable_root_ssh(cls, options, public_ip):
-    """Enables root logins and SSH access on the machine
+  def enable_appscale_ssh(cls, options, public_ip):
+    """Enables appscale logins and SSH access on the machine
     and copies the user's SSH key to the head node. On the tools side this
     should only be used for the "head node" since the server does this for all
     other nodes.
@@ -247,10 +247,10 @@ class RemoteHelper(object):
         well as how to interact with that cloud.
       public_ip: The IP address of the machine.
     """
-    AppScaleLogger.log("Enabling root ssh on {0}".format(public_ip))
+    AppScaleLogger.log("Enabling appscale ssh on {0}".format(public_ip))
     cls.sleep_until_port_is_open(public_ip, cls.SSH_PORT, options.verbose)
 
-    cls.enable_root_login(public_ip, options.keyname, options.infrastructure,
+    cls.enable_appscale_login(public_ip, options.keyname, options.infrastructure,
                           options.verbose)
     cls.copy_ssh_keys_to_node(public_ip, options.keyname, options.verbose)
 
@@ -282,7 +282,7 @@ class RemoteHelper(object):
                            format(secret_key), options.verbose)
     head_node = node_layout.head_node().public_ip
 
-    AppScaleLogger.log("Log in to your head node: ssh -i {0} root@{1}".format(
+    AppScaleLogger.log("Log in to your head node: ssh -i {0} appscale@{1}".format(
       LocalState.get_key_path_from_name(options.keyname), head_node))
 
     additional_params = {}
@@ -404,61 +404,61 @@ class RemoteHelper(object):
 
   @classmethod
   def merge_authorized_keys(cls, host, keyname, user, is_verbose):
-    """ Adds the contents of the user's authorized_keys file to the root's
+    """ Adds the contents of the user's authorized_keys file to the appscale's
     authorized_keys file.
 
     Args:
-      host: A str representing the host to enable root logins on.
+      host: A str representing the host to enable appscale logins on.
       keyname: A str representing the name of the SSH keypair to login with.
       user: A str representing the name of the user to login as.
       is_verbose: A bool indicating if we should print the command we execute to
-        enable root login to stdout.
+        enable appscale login to stdout.
     """
-    AppScaleLogger.log('Root login not enabled for {} - enabling it '
+    AppScaleLogger.log('appscale login not enabled for {} - enabling it '
                        'now.'.format(host))
 
-    create_root_keys = 'sudo touch /root/.ssh/authorized_keys'
-    cls.ssh(host, keyname, create_root_keys, is_verbose, user=user)
+    create_appscale_keys = 'sudo touch /home/appscale/.ssh/authorized_keys'
+    cls.ssh(host, keyname, create_appscale_keys, is_verbose, user=user)
 
-    set_permissions = 'sudo chmod 600 /root/.ssh/authorized_keys'
+    set_permissions = 'sudo chmod 600 /home/appscale/.ssh/authorized_keys'
     cls.ssh(host, keyname, set_permissions, is_verbose, user=user)
 
     temp_file = cls.ssh(host, keyname, 'mktemp', is_verbose, user=user)
 
     merge_to_tempfile = 'sudo sort -u ~/.ssh/authorized_keys '\
-      '/root/.ssh/authorized_keys -o {}'.format(temp_file)
+      '/home/appscale/.ssh/authorized_keys -o {}'.format(temp_file)
     cls.ssh(host, keyname, merge_to_tempfile, is_verbose, user=user)
 
-    overwrite_root_keys = "sudo sed -n '/.*Please login/d; "\
-      "w/root/.ssh/authorized_keys' {}".format(temp_file)
-    cls.ssh(host, keyname, overwrite_root_keys, is_verbose, user=user)
+    overwrite_appscale_keys = "sudo sed -n '/.*Please login/d; "\
+      "w/home/appscale/.ssh/authorized_keys' {}".format(temp_file)
+    cls.ssh(host, keyname, overwrite_appscale_keys, is_verbose, user=user)
 
     remove_tempfile = 'rm -f {0}'.format(temp_file)
     cls.ssh(host, keyname, remove_tempfile, is_verbose, user=user)
     return
 
   @classmethod
-  def enable_root_login(cls, host, keyname, infrastructure, is_verbose):
+  def enable_appscale_login(cls, host, keyname, infrastructure, is_verbose):
     """Logs into the named host and alters its ssh configuration to enable the
-    root user to directly log in.
+    appscale user to directly log in.
 
     Args:
-      host: A str representing the host to enable root logins on.
+      host: A str representing the host to enable appscale logins on.
       keyname: A str representing the name of the SSH keypair to login with.
       infrastructure: A str representing the name of the cloud infrastructure
         we're running on.
       is_verbose: A bool indicating if we should print the command we execute to
-        enable root login to stdout.
+        enable appscale login to stdout.
     """
-    # First, see if we need to enable root login at all (some VMs have it
+    # First, see if we need to enable appscale login at all (some VMs have it
     # already enabled).
     try:
       if infrastructure == "azure":
         cls.merge_authorized_keys(host, keyname, 'azureuser', is_verbose)
-      output = cls.ssh(host, keyname, 'ls', is_verbose, user='root')
+      output = cls.ssh(host, keyname, 'ls', is_verbose, user='appscale')
     except ShellException as exception:
       # Google Compute Engine creates a user with the same name as the currently
-      # logged-in user, so log in as that user to enable root login.
+      # logged-in user, so log in as that user to enable appscale login.
       if infrastructure == "gce":
         cls.merge_authorized_keys(host, keyname, getpass.getuser(),
           is_verbose)
@@ -466,18 +466,18 @@ class RemoteHelper(object):
       else:
         raise exception
 
-    # Amazon EC2 rejects a root login request and tells the user to log in as
-    # a different user, so do that to enable root login.
+    # Amazon EC2 rejects a appscale login request and tells the user to log in as
+    # a different user, so do that to enable appscale login.
     match = re.match(cls.LOGIN_AS_UBUNTU_USER, output)
     if match:
       user = match.group(1)
       cls.merge_authorized_keys(host, keyname, user, is_verbose)
     else:
-      AppScaleLogger.log("Root login already enabled for {}.".format(host))
+      AppScaleLogger.log("appscale login already enabled for {}.".format(host))
 
 
   @classmethod
-  def ssh(cls, host, keyname, command, is_verbose, user='root',
+  def ssh(cls, host, keyname, command, is_verbose, user='appscale',
             num_retries=LocalState.DEFAULT_NUM_RETRIES):
     """Logs into the named host and executes the given command.
 
@@ -499,7 +499,7 @@ class RemoteHelper(object):
 
 
   @classmethod
-  def scp(cls, host, keyname, source, dest, is_verbose, user='root',
+  def scp(cls, host, keyname, source, dest, is_verbose, user='appscale',
     num_retries=LocalState.DEFAULT_NUM_RETRIES):
     """Securely copies a file from this machine to the named machine.
 
@@ -526,7 +526,7 @@ class RemoteHelper(object):
 
   @classmethod
   def scp_remote_to_local(cls, host, keyname, source, dest, is_verbose,
-    user='root'):
+    user='appscale'):
     """Securely copies a file from a remote machine to this machine.
 
     Args:
@@ -564,8 +564,8 @@ class RemoteHelper(object):
         needed to copy the SSH keys over to stdout.
     """
     ssh_key = LocalState.get_key_path_from_name(keyname)
-    cls.scp(host, keyname, ssh_key, '/root/.ssh/id_dsa', is_verbose)
-    cls.scp(host, keyname, ssh_key, '/root/.ssh/id_rsa', is_verbose)
+    cls.scp(host, keyname, ssh_key, '/home/appscale/.ssh/id_dsa', is_verbose)
+    cls.scp(host, keyname, ssh_key, '/home/appscale/.ssh/id_rsa', is_verbose)
     cls.scp(host, keyname, ssh_key, '{}/{}.key'.format(cls.CONFIG_DIR, keyname),
       is_verbose)
 
@@ -680,7 +680,7 @@ class RemoteHelper(object):
     LocalState.shell("rsync -e 'ssh -i {0} {1}' -arv "
       "--exclude='AppDB/logs/*' " \
       "--exclude='AppDB/cassandra/cassandra/*' " \
-      "{2}/* root@{3}:/root/appscale/".format(ssh_key, cls.SSH_OPTIONS,
+      "{2}/* appscale@{3}:/home/appscale/appscale/".format(ssh_key, cls.SSH_OPTIONS,
       local_path, host), is_verbose)
 
   @classmethod
@@ -1079,7 +1079,7 @@ class RemoteHelper(object):
         exec to stdout.
       clean: A boolean that specifies whether or not to clean persistent state.
     """
-    terminate_cmd = 'ruby /root/appscale/AppController/terminate.rb'
+    terminate_cmd = 'ruby /home/appscale/appscale/AppController/terminate.rb'
     if clean:
       terminate_cmd += ' clean'
     cls.ssh(host, keyname, terminate_cmd, is_verbose)
@@ -1182,7 +1182,7 @@ class RemoteHelper(object):
     return message
 
   @classmethod
-  def get_command_output_from_remote(cls, host, command, keyname, user='root',
+  def get_command_output_from_remote(cls, host, command, keyname, user='appscale',
                                      shell=False):
     """ Get the file from the location in the remote and passes the contents.
 

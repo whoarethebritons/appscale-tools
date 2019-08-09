@@ -213,10 +213,10 @@ class AppScaleTools(object):
       # next, set up passwordless ssh
       AppScaleLogger.log("Executing ssh-copy-id for host: {0}".format(ip))
       if options.auto:
-        LocalState.shell("{0} root@{1} {2} {3}".format(cls.EXPECT_SCRIPT, ip,
+        LocalState.shell("{0} appscale@{1} {2} {3}".format(cls.EXPECT_SCRIPT, ip,
           private_key, password), options.verbose)
       else:
-        LocalState.shell("ssh-copy-id -i {0} root@{1}".format(private_key, ip),
+        LocalState.shell("ssh-copy-id -i {0} appscale@{1}".format(private_key, ip),
           options.verbose)
 
     AppScaleLogger.success("Generated a new SSH key for this deployment " + \
@@ -840,7 +840,7 @@ class AppScaleTools(object):
       node_layout = RemoteHelper.start_all_nodes(options, node_layout)
 
       # Enables root logins and SSH access on the head node.
-      RemoteHelper.enable_root_ssh(options, head_node.public_ip)
+      RemoteHelper.enable_appscale_ssh(options, head_node.public_ip)
     AppScaleLogger.verbose("Node Layout: {}".format(node_layout.to_list()),
                            options.verbose)
 

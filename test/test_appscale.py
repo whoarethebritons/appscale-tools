@@ -334,7 +334,7 @@ class TestAppScale(unittest.TestCase):
       .and_return(flexmock(read=lambda: nodes_contents)))
 
     flexmock(subprocess)
-    subprocess.should_receive('call').with_args(["ssh", "-o", "StrictHostkeyChecking=no", "-i", appscale.get_key_location('boo'), "root@blarg2"]).and_return().once()
+    subprocess.should_receive('call').with_args(["ssh", "-o", "StrictHostkeyChecking=no", "-i", appscale.get_key_location('boo'), "appscale@blarg2"]).and_return().once()
     appscale.ssh(1)
 
 
@@ -593,7 +593,7 @@ class TestAppScale(unittest.TestCase):
     flexmock(subprocess)
     subprocess.should_receive('call').with_args(["ssh", "-o",
       "StrictHostkeyChecking=no", "-i", appscale.get_key_location('boo'),
-      "root@blarg2", "tail -F /var/log/appscale/c*"]).and_return().once()
+      "appscale@blarg2", "tail -F /var/log/appscale/c*"]).and_return().once()
     appscale.tail(1, "c*")
 
 
