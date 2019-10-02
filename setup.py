@@ -44,16 +44,12 @@ setup(
   install_requires=[
     'adal>=0.4.7',
     'appscale-agents',
-    'azure==2.0.0',
-    'azure-mgmt-marketplaceordering',
     'cryptography>=2.3.0',
     'argparse',
     'boto',
     'google-api-python-client==1.5.4',
     'haikunator',
     'httplib2',
-    'keyring<19.0.0',
-    'msrestazure==0.4.34',
     'oauth2client==4.0.0',
     'pyOpenSSL>=18.0.0',
     'PyYAML',
@@ -95,7 +91,6 @@ setup(
       'appscale-set-property=appscale.tools.scripts.set_property:main',
       'appscale-terminate-instances=' +
         'appscale.tools.scripts.terminate_instances:main',
-      'appscale-upgrade=appscale.tools.scripts.upgrade:main',
       'appscale-upload-app=appscale.tools.scripts.upload_app:main'
     ]
   },
