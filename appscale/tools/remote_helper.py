@@ -711,7 +711,7 @@ class RemoteHelper(object):
     hash_id = subprocess.Popen(["openssl", "x509", "-hash", "-noout", "-in",
       LocalState.get_certificate_location(options.keyname)],
       stdout=subprocess.PIPE).communicate()[0]
-    symlink_cert = 'ln -fs {}/certs/mycert.pem /etc/ssl/certs/{}.0'.\
+    symlink_cert = 'sudo ln -fs {}/certs/mycert.pem /etc/ssl/certs/{}.0'.\
       format(cls.CONFIG_DIR, hash_id.rstrip())
     cls.ssh(host, options.keyname, symlink_cert)
 
