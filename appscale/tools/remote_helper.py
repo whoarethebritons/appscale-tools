@@ -434,7 +434,7 @@ class RemoteHelper(object):
     return
 
   @classmethod
-  def enable_root_login(cls, host, keyname, infrastructure, is_verbose=None):
+  def enable_appscale_login(cls, host, keyname, infrastructure, is_verbose=None):
     """Logs into the named host and alters its ssh configuration to enable the
     appscale user to directly log in.
 
