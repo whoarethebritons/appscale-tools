@@ -459,15 +459,10 @@ class RemoteHelper(object):
         cls.merge_authorized_keys(host, keyname, getpass.getuser(),
           is_verbose)
         return
+      elif infrastructure in ['ec2', 'euca']:
+        cls.merge_authorized_keys(host, keyname, 'ubuntu', is_verbose)
       else:
         raise exception
-
-    # Amazon EC2 rejects a appscale login request and tells the user to log in as
-    # a different user, so do that to enable appscale login.
-    match = re.match(cls.LOGIN_AS_UBUNTU_USER, output)
-    if match:
-      user = match.group(1)
-      cls.merge_authorized_keys(host, keyname, user, is_verbose)
     else:
       AppScaleLogger.log("appscale login already enabled for {}.".format(host))
 
