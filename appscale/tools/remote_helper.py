@@ -14,6 +14,8 @@ import time
 import uuid
 import yaml
 
+from os.path import abspath
+
 from boto.exception import BotoServerError
 
 # AppScale-specific imports
@@ -410,23 +412,24 @@ class RemoteHelper(object):
       is_verbose: A bool indicating if we should print the command we execute to
         enable appscale login to stdout.
     """
-    AppScaleLogger.log('appscale login not enabled for {} - enabling it '
-                       'now.'.format(host))
+    user_home = '~{}'.format(user)
+    AppScaleLogger.log('{} login not enabled for {} - enabling it '
+                       'now.'.format(user, host))
 
-    create_appscale_keys = 'sudo touch /home/appscale/.ssh/authorized_keys'
+    create_appscale_keys = 'sudo touch {}/.ssh/authorized_keys'.format(user_home)
     cls.ssh(host, keyname, create_appscale_keys, is_verbose, user=user)
 
-    set_permissions = 'sudo chmod 600 /home/appscale/.ssh/authorized_keys'
+    set_permissions = 'sudo chmod 600 {}/.ssh/authorized_keys'.format(user_home)
     cls.ssh(host, keyname, set_permissions, is_verbose, user=user)
 
     temp_file = cls.ssh(host, keyname, 'mktemp', is_verbose, user=user)
 
     merge_to_tempfile = 'sudo sort -u ~/.ssh/authorized_keys '\
-      '/home/appscale/.ssh/authorized_keys -o {}'.format(temp_file)
+      '{}/.ssh/authorized_keys -o {}'.format(user_home, temp_file)
     cls.ssh(host, keyname, merge_to_tempfile, is_verbose, user=user)
 
     overwrite_appscale_keys = "sudo sed -n '/.*Please login/d; "\
-      "w/home/appscale/.ssh/authorized_keys' {}".format(temp_file)
+      "w{}/.ssh/authorized_keys' {}".format(user_home, temp_file)
     cls.ssh(host, keyname, overwrite_appscale_keys, is_verbose, user=user)
 
     remove_tempfile = 'rm -f {0}'.format(temp_file)
