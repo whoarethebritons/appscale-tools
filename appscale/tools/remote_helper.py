@@ -401,7 +401,7 @@ class RemoteHelper(object):
       return False
 
   @classmethod
-  def merge_authorized_keys(cls, host, keyname, user, is_verbose=None):
+  def merge_authorized_keys(cls, host, keyname, user, is_verbose=None, enable_user='appscale'):
     """ Adds the contents of the user's authorized_keys file to the root's
     authorized_keys file.
 
@@ -412,9 +412,11 @@ class RemoteHelper(object):
       is_verbose: A bool indicating if we should print the command we execute to
         enable appscale login to stdout.
     """
-    user_home = '~{}'.format(user)
+    if enable_user not in ['appscale', 'root']:
+      raise BadConfigurationException('merge_authorized_keys cannot enable login for users beside root or appscale')
+    user_home = '/root' if enable_user == 'root' else '/home/appscale'
     AppScaleLogger.log('{} login not enabled for {} - enabling it '
-                       'now.'.format(user, host))
+                       'now.'.format(enable_user, host))
 
     create_appscale_keys = 'sudo touch {}/.ssh/authorized_keys'.format(user_home)
     cls.ssh(host, keyname, create_appscale_keys, is_verbose, user=user)
