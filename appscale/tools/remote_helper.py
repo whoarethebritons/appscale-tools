@@ -417,11 +417,11 @@ class RemoteHelper(object):
     user_home = '/root' if enable_user == 'root' else '/home/appscale'
     AppScaleLogger.log('{} login not enabled for {} - enabling it '
                        'now.'.format(enable_user, host))
-
-    ensure_ssh_dir = 'sudo mkdir -p /home/appscale/.ssh && ' \
-            'sudo chown -R appscale:appscale /home/appscale/.ssh && ' \
-            'sudo chmod 700 /home/appscale/.ssh'
-    cls.ssh(host, keyname, ensure_ssh_dir, is_verbose, user=user)
+    if enable_user == 'appscale':
+      ensure_ssh_dir = 'sudo mkdir -p /home/appscale/.ssh && ' \
+              'sudo chown -R appscale:appscale /home/appscale/.ssh && ' \
+              'sudo chmod 700 /home/appscale/.ssh'
+      cls.ssh(host, keyname, ensure_ssh_dir, is_verbose, user=user)
 
     create_appscale_keys = 'sudo touch {}/.ssh/authorized_keys'.format(user_home)
     cls.ssh(host, keyname, create_appscale_keys, is_verbose, user=user)
@@ -439,8 +439,9 @@ class RemoteHelper(object):
       "w{}/.ssh/authorized_keys' {}".format(user_home, temp_file)
     cls.ssh(host, keyname, overwrite_appscale_keys, is_verbose, user=user)
 
-    change_ownership = "sudo chown appscale:appscale {}/.ssh/authorized_keys".format(user_home)
-    cls.ssh(host, keyname, change_ownership, is_verbose, user=user)
+    if enable_user == 'appscale':
+      change_ownership = "sudo chown appscale:appscale {}/.ssh/authorized_keys".format(user_home)
+      cls.ssh(host, keyname, change_ownership, is_verbose, user=user)
 
     remove_tempfile = 'rm -f {0}'.format(temp_file)
     cls.ssh(host, keyname, remove_tempfile, is_verbose, user=user)
@@ -705,7 +706,7 @@ class RemoteHelper(object):
       '{}/ssh.key'.format(cls.CONFIG_DIR))
 
     LocalState.generate_ssl_cert(options.keyname)
-
+    cls.ssh(host, options.keyname, "sudo chown -R appscale:appscale /etc/appscale/certs")
     local_cert = LocalState.get_certificate_location(options.keyname)
     cls.scp(host, options.keyname, local_cert,
       '{}/certs/mycert.pem'.format(cls.CONFIG_DIR))
