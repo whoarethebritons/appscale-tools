@@ -418,6 +418,11 @@ class RemoteHelper(object):
     AppScaleLogger.log('{} login not enabled for {} - enabling it '
                        'now.'.format(enable_user, host))
 
+    ensure_ssh_dir = 'sudo mkdir -p /home/appscale/.ssh && ' \
+            'sudo chown -R appscale:appscale /home/appscale/.ssh && ' \
+            'sudo chmod 700 /home/appscale/.ssh'
+    cls.ssh(host, keyname, ensure_ssh_dir, is_verbose, user=user)
+
     create_appscale_keys = 'sudo touch {}/.ssh/authorized_keys'.format(user_home)
     cls.ssh(host, keyname, create_appscale_keys, is_verbose, user=user)
 
@@ -433,6 +438,9 @@ class RemoteHelper(object):
     overwrite_appscale_keys = "sudo sed -n '/.*Please login/d; "\
       "w{}/.ssh/authorized_keys' {}".format(user_home, temp_file)
     cls.ssh(host, keyname, overwrite_appscale_keys, is_verbose, user=user)
+
+    change_ownership = "sudo chown appscale:appscale {}/.ssh/authorized_keys".format(user_home)
+    cls.ssh(host, keyname, change_ownership, is_verbose, user=user)
 
     remove_tempfile = 'rm -f {0}'.format(temp_file)
     cls.ssh(host, keyname, remove_tempfile, is_verbose, user=user)
@@ -451,26 +459,24 @@ class RemoteHelper(object):
       is_verbose: A bool indicating if we should print the command we execute to
         enable appscale login to stdout.
     """
-    # First, see if we need to enable appscale login at all (some VMs have it
-    # already enabled).
+    # First, see if we need to enable appscale login at all.
     try:
-      if infrastructure == "azure":
-        cls.merge_authorized_keys(host, keyname, 'azureuser', is_verbose)
       output = cls.ssh(host, keyname, 'ls', is_verbose, user='appscale')
     except ShellException as exception:
-      # Google Compute Engine creates a user with the same name as the currently
-      # logged-in user, so log in as that user to enable appscale login.
-      if infrastructure == "gce":
-        cls.merge_authorized_keys(host, keyname, getpass.getuser(),
-          is_verbose)
-        return
-      elif infrastructure in ['ec2', 'euca']:
-        cls.merge_authorized_keys(host, keyname, 'ubuntu', is_verbose)
-      else:
-        raise exception
+      pass
     else:
       AppScaleLogger.log("appscale login already enabled for {}.".format(host))
 
+    default_user = 'ubuntu'
+    if infrastructure == 'azure':
+      default_user = 'azureuser'
+    # Google Compute Engine creates a user with the same name as the currently
+    # logged-in user, so log in as that user to enable appscale login.
+    elif infrastructure == "gce":
+      default_user = getpass.getuser()
+
+    cls.merge_authorized_keys(host, keyname, default_user, is_verbose)
+    output = cls.ssh(host, keyname, 'ls', is_verbose, user='appscale')
 
   @classmethod
   def ssh(cls, host, keyname, command, is_verbose=None, user='appscale',
